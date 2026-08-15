@@ -4,20 +4,18 @@ import {
   FolderArchive, 
   Network, 
   GitBranch, 
-  History, 
   Terminal, 
   Info,
-  ChevronRight,
-  Sparkles
+  X
 } from 'lucide-react';
 import { useTrace } from '../../context/TraceContext';
 import { ActiveView } from '../../types';
 
 export const Sidebar: React.FC = () => {
-  const { activeView, setActiveView, connections, cases } = useTrace();
+  const { activeView, setActiveView, connections, cases, mobileMenuOpen, setMobileMenuOpen } = useTrace();
 
-  const suggestedCount = connections.filter(c => c.status === 'SUGGESTED').length;
-  const verifiedCount = connections.filter(c => c.status === 'VERIFIED').length;
+  const suggestedCount = (connections || []).filter(c => c.status === 'SUGGESTED').length;
+  const verifiedCount = (connections || []).filter(c => c.status === 'VERIFIED').length;
 
   const navItems: { id: ActiveView; label: string; icon: React.ReactNode; badge?: string | number; badgeColor?: string }[] = [
     {
@@ -29,7 +27,7 @@ export const Sidebar: React.FC = () => {
       id: 'cases',
       label: 'Cases Repository',
       icon: <FolderArchive className="w-4 h-4" />,
-      badge: cases.length,
+      badge: (cases || []).length,
       badgeColor: 'bg-[#242B30] text-[#8A9399]',
     },
     {
@@ -53,8 +51,8 @@ export const Sidebar: React.FC = () => {
     },
   ];
 
-  return (
-    <aside className="w-64 border-r border-[#242B30] bg-[#060606] flex flex-col justify-between p-4 shrink-0 min-h-[calc(100vh-4rem)]">
+  const renderNavContent = () => (
+    <div className="flex flex-col justify-between h-full p-4">
       <div className="space-y-6">
         {/* Section: Main Navigation */}
         <div>
@@ -70,7 +68,10 @@ export const Sidebar: React.FC = () => {
               return (
                 <button
                   key={item.id}
-                  onClick={() => setActiveView(item.id)}
+                  onClick={() => {
+                    setActiveView(item.id);
+                    setMobileMenuOpen(false);
+                  }}
                   className={`w-full flex items-center justify-between px-3 py-2.5 rounded text-xs font-medium transition-all ${
                     isActive
                       ? 'bg-[#121619] text-[#F2F2F2] border border-[#81A2A2]/60 shadow-sm'
@@ -113,7 +114,7 @@ export const Sidebar: React.FC = () => {
         </div>
       </div>
 
-      {/* Mandatory Positioning & Synthetic Notice */}
+      {/* Operational Notice */}
       <div className="pt-4 border-t border-[#242B30]">
         <div className="p-3 rounded bg-[#121619]/80 border border-[#242B30] text-[11px] text-[#8A9399] space-y-1.5 leading-relaxed">
           <div className="flex items-center space-x-1.5 text-[#81A2A2] font-semibold text-[10px] font-mono uppercase tracking-wider">
@@ -125,6 +126,42 @@ export const Sidebar: React.FC = () => {
           </p>
         </div>
       </div>
-    </aside>
+    </div>
+  );
+
+  return (
+    <>
+      {/* Desktop Persistent Sidebar */}
+      <aside className="hidden md:flex w-64 border-r border-[#242B30] bg-[#060606] flex-col shrink-0 min-h-[calc(100vh-4rem)]">
+        {renderNavContent()}
+      </aside>
+
+      {/* Mobile Slide-Over Drawer with Backdrop */}
+      {mobileMenuOpen && (
+        <div className="fixed inset-0 z-50 md:hidden flex">
+          {/* Backdrop */}
+          <div 
+            onClick={() => setMobileMenuOpen(false)}
+            className="fixed inset-0 bg-black/70 backdrop-blur-xs transition-opacity"
+          />
+
+          {/* Drawer Panel */}
+          <div className="relative w-72 max-w-[80vw] bg-[#060606] border-r border-[#242B30] h-full shadow-2xl flex flex-col z-10 animate-in slide-in-from-left duration-200">
+            <div className="flex items-center justify-between p-4 border-b border-[#242B30]">
+              <span className="text-xs font-mono font-bold tracking-wider text-[#F2F2F2]">NAVIGATION</span>
+              <button 
+                onClick={() => setMobileMenuOpen(false)}
+                className="p-1 text-[#8A9399] hover:text-[#F2F2F2] rounded"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto">
+              {renderNavContent()}
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 };

@@ -90,7 +90,7 @@ export const CaseDetailView: React.FC<Props> = ({ caseNumber }) => {
       </div>
 
       {/* Case Header Card */}
-      <div className="p-6 bg-[#121619] rounded-lg border border-[#242B30] space-y-4">
+      <div className="p-4 sm:p-6 bg-[#121619] rounded-lg border border-[#242B30] space-y-4">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <div className="space-y-2">
             <div className="flex flex-wrap items-center gap-2">
@@ -115,7 +115,7 @@ export const CaseDetailView: React.FC<Props> = ({ caseNumber }) => {
               </span>
             </div>
 
-            <h1 className="text-xl font-bold text-[#F2F2F2]">{currentCase.title}</h1>
+            <h1 className="text-lg sm:text-xl font-bold text-[#F2F2F2]">{currentCase.title}</h1>
           </div>
 
           {/* Status Controls */}
@@ -135,35 +135,35 @@ export const CaseDetailView: React.FC<Props> = ({ caseNumber }) => {
         </div>
 
         {/* Quick Meta Strip */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-3 border-t border-[#242B30]/60 text-xs text-[#8A9399]">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3 pt-3 border-t border-[#242B30]/60 text-xs text-[#8A9399]">
           <div className="flex items-center space-x-1.5">
-            <User className="w-3.5 h-3.5 text-[#81A2A2]" />
-            <span>Officer: <strong className="text-[#F2F2F2]">{currentCase.assigned_officer || 'Unassigned'}</strong></span>
+            <User className="w-3.5 h-3.5 text-[#81A2A2] shrink-0" />
+            <span className="truncate">Officer: <strong className="text-[#F2F2F2]">{currentCase.assigned_officer || 'Unassigned'}</strong></span>
           </div>
           <div className="flex items-center space-x-1.5">
-            <MapPin className="w-3.5 h-3.5 text-[#81A2A2]" />
-            <span>Unit: <strong className="text-[#F2F2F2]">{currentCase.jurisdiction || 'Metro Cyber Command'}</strong></span>
+            <MapPin className="w-3.5 h-3.5 text-[#81A2A2] shrink-0" />
+            <span className="truncate">Unit: <strong className="text-[#F2F2F2]">{currentCase.jurisdiction || 'Metro Cyber Command'}</strong></span>
           </div>
           <div className="flex items-center space-x-1.5">
-            <Calendar className="w-3.5 h-3.5 text-[#81A2A2]" />
-            <span>Registered: <strong className="text-[#F2F2F2] font-mono">{currentCase.created_at.substring(0, 10)}</strong></span>
+            <Calendar className="w-3.5 h-3.5 text-[#81A2A2] shrink-0" />
+            <span className="truncate">Reg: <strong className="text-[#F2F2F2] font-mono">{currentCase.created_at.substring(0, 10)}</strong></span>
           </div>
           <div className="flex items-center space-x-1.5">
-            <Network className="w-3.5 h-3.5 text-[#F5C451]" />
-            <span>Cross-Case Leads: <strong className="text-[#F5C451] font-mono">{caseConnections.length}</strong></span>
+            <Network className="w-3.5 h-3.5 text-[#F5C451] shrink-0" />
+            <span className="truncate">Leads: <strong className="text-[#F5C451] font-mono">{caseConnections.length}</strong></span>
           </div>
         </div>
       </div>
 
       {/* Navigation Tabs */}
-      <div className="border-b border-[#242B30] flex items-center space-x-2 overflow-x-auto">
+      <div className="border-b border-[#242B30] flex items-center space-x-2 overflow-x-auto no-scrollbar py-1">
         {tabs.map((tab) => {
           const isActive = activeTab === tab.id;
           return (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center space-x-2 px-4 py-2.5 text-xs font-medium border-b-2 transition-colors shrink-0 ${
+              className={`flex items-center space-x-1.5 sm:space-x-2 px-3 sm:px-4 py-2 sm:py-2.5 text-xs font-medium border-b-2 transition-colors shrink-0 whitespace-nowrap ${
                 isActive
                   ? 'border-[#81A2A2] text-[#F2F2F2] bg-[#121619]/40'
                   : 'border-transparent text-[#8A9399] hover:text-[#F2F2F2] hover:bg-[#121619]/20'

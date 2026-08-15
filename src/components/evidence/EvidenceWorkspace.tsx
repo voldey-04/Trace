@@ -94,15 +94,15 @@ export const EvidenceWorkspace: React.FC<Props> = ({ caseId }) => {
                 key={ev.id}
                 className="p-4 rounded-lg bg-[#121619] border border-[#242B30] hover:border-[#454F56] transition-all space-y-3"
               >
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                  <div className="flex items-center space-x-3">
-                    <div className="w-8 h-8 rounded bg-[#060606] border border-[#242B30] flex items-center justify-center shrink-0">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="flex items-start sm:items-center space-x-3">
+                    <div className="w-8 h-8 rounded bg-[#060606] border border-[#242B30] flex items-center justify-center shrink-0 mt-0.5 sm:mt-0">
                       {getFileIcon(ev.file_type)}
                     </div>
-                    <div>
-                      <div className="flex items-center space-x-2">
-                        <span className="font-mono text-xs font-bold text-[#F2F2F2]">{ev.file_name}</span>
-                        <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-[#060606] text-[#81A2A2] border border-[#242B30]">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="font-mono text-xs font-bold text-[#F2F2F2] break-all">{ev.file_name}</span>
+                        <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-[#060606] text-[#81A2A2] border border-[#242B30] shrink-0">
                           {ev.file_type}
                         </span>
                       </div>
@@ -113,7 +113,7 @@ export const EvidenceWorkspace: React.FC<Props> = ({ caseId }) => {
                   </div>
 
                   {/* Status & Processing Controls */}
-                  <div className="flex items-center space-x-3">
+                  <div className="flex flex-wrap items-center gap-2 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-[#242B30]">
                     <span className={`text-[10px] font-mono px-2 py-0.5 rounded font-bold ${
                       isProcessed ? 'bg-[#B7FF3C]/10 text-[#B7FF3C] border border-[#B7FF3C]/30' :
                       isFailed ? 'bg-[#FF4D4D]/10 text-[#FF4D4D] border border-[#FF4D4D]/30' :

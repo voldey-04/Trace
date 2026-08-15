@@ -1,20 +1,26 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef, useCallback } from 'react';
 import { 
   GitBranch, 
   ZoomIn, 
   ZoomOut, 
   RotateCcw, 
-  Filter, 
-  Layers, 
-  FileText, 
-  FolderArchive, 
+  Search, 
   X,
   ExternalLink,
   ShieldCheck,
-  Info
+  Phone,
+  CreditCard,
+  Globe,
+  Mail,
+  Server,
+  DollarSign,
+  Maximize2,
+  SlidersHorizontal,
+  Info,
+  Sparkles
 } from 'lucide-react';
 import { useTrace } from '../../context/TraceContext';
-import { Case, Connection, Entity, EntityType, Evidence } from '../../types';
+import { Case, Connection, Entity, EntityType } from '../../types';
 
 interface Props {
   focusedCaseId?: string; // If provided, limits to subgraph of this case
@@ -23,7 +29,8 @@ interface Props {
 interface GraphNode {
   id: string;
   label: string;
-  type: 'CASE' | 'EVIDENCE' | 'ENTITY';
+  subLabel?: string;
+  type: 'CASE' | 'ENTITY';
   entityType?: EntityType;
   x: number;
   y: number;
@@ -34,31 +41,66 @@ interface GraphEdge {
   id: string;
   source: string;
   target: string;
-  label?: string;
   isHighConfidence?: boolean;
+  label?: string;
 }
 
 export const InvestigationGraph: React.FC<Props> = ({ focusedCaseId }) => {
-  const { cases, evidence, entities, connections, setActiveView, setSelectedCaseId, setSelectedConnectionId } = useTrace();
+  const { cases, entities, connections, setActiveView, setSelectedCaseId, setSelectedConnectionId } = useTrace();
 
+  // Viewport transforms (in SVG coordinate space 1100x750)
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const [selectedNode, setSelectedNode] = useState<GraphNode | null>(null);
+  const [hoveredNodeId, setHoveredNodeId] = useState<string | null>(null);
   const [filterType, setFilterType] = useState<string>('ALL');
+  const [sharedOnly, setSharedOnly] = useState<boolean>(false);
+  const [searchTerm, setSearchTerm] = useState<string>('');
 
-  // Compute Nodes and Edges deterministically
-  const { nodes, edges } = useMemo(() => {
+  const svgRef = useRef<SVGSVGElement | null>(null);
+
+  // Helper color map for entity types
+  const getEntityColor = (type?: EntityType) => {
+    switch (type) {
+      case 'PHONE':
+        return '#81A2A2'; // Teal / Cyan
+      case 'UPI':
+        return '#B7FF3C'; // Electric Lime
+      case 'WEBSITE':
+      case 'URL':
+        return '#F5C451'; // Amber Yellow
+      case 'EMAIL':
+        return '#A78BFA'; // Purple
+      case 'IP_ADDRESS':
+        return '#60A5FA'; // Light Blue
+      case 'TRANSACTION':
+      case 'ACCOUNT':
+        return '#F472B6'; // Pink
+      default:
+        return '#8A9399'; // Neutral Silver
+    }
+  };
+
+  // Compute Nodes and Edges with high-clarity deterministic radial layout
+  const { nodes, edges, connectedNodeMap } = useMemo(() => {
     const calculatedNodes: GraphNode[] = [];
     const calculatedEdges: GraphEdge[] = [];
     const nodeMap = new Set<string>();
+    const connectionsMap = new Map<string, Set<string>>();
+
+    const addConnection = (a: string, b: string) => {
+      if (!connectionsMap.has(a)) connectionsMap.set(a, new Set());
+      if (!connectionsMap.has(b)) connectionsMap.set(b, new Set());
+      connectionsMap.get(a)!.add(b);
+      connectionsMap.get(b)!.add(a);
+    };
 
     // Determine relevant cases
     const relevantCases = focusedCaseId
       ? cases.filter(c => {
           if (c.case_number === focusedCaseId) return true;
-          // Include cases connected to this case
           return connections.some(
             conn => (conn.case_a === focusedCaseId && conn.case_b === c.case_number) ||
                     (conn.case_b === focusedCaseId && conn.case_a === c.case_number)
@@ -68,31 +110,46 @@ export const InvestigationGraph: React.FC<Props> = ({ focusedCaseId }) => {
 
     const relevantCaseNumbers = new Set(relevantCases.map(c => c.case_number));
 
-    // Layout geometry
-    const centerX = 500;
-    const centerY = 350;
-    const caseRadius = focusedCaseId ? 280 : 240;
+    // Layout center in 1100 x 750 SVG canvas space
+    const centerX = 550;
+    const centerY = 375;
+    const caseRadius = focusedCaseId ? 260 : 230;
 
-    // 1. Position Case Nodes in circle
+    // 1. Position Case Nodes
     relevantCases.forEach((c, idx) => {
-      const angle = (idx / relevantCases.length) * 2 * Math.PI - Math.PI / 2;
-      const x = focusedCaseId && c.case_number === focusedCaseId 
-        ? centerX 
-        : centerX + caseRadius * Math.cos(angle);
-      const y = focusedCaseId && c.case_number === focusedCaseId 
-        ? centerY 
-        : centerY + caseRadius * Math.sin(angle);
+      let x = centerX;
+      let y = centerY;
 
+      if (focusedCaseId) {
+        if (c.case_number === focusedCaseId) {
+          x = centerX;
+          y = centerY;
+        } else {
+          const nonFocusedIdx = idx > relevantCases.findIndex(rc => rc.case_number === focusedCaseId) ? idx - 1 : idx;
+          const totalOther = Math.max(1, relevantCases.length - 1);
+          const angle = (nonFocusedIdx / totalOther) * 2 * Math.PI - Math.PI / 2;
+          x = centerX + caseRadius * Math.cos(angle);
+          y = centerY + caseRadius * Math.sin(angle);
+        }
+      } else {
+        const total = Math.max(1, relevantCases.length);
+        const angle = (idx / total) * 2 * Math.PI - Math.PI / 2;
+        x = centerX + caseRadius * Math.cos(angle);
+        y = centerY + caseRadius * Math.sin(angle);
+      }
+
+      const caseNodeId = `node-case-${c.case_number}`;
       const node: GraphNode = {
-        id: `node-case-${c.case_number}`,
+        id: caseNodeId,
         label: c.case_number,
+        subLabel: c.crime_type,
         type: 'CASE',
         x,
         y,
         data: c,
       };
       calculatedNodes.push(node);
-      nodeMap.add(node.id);
+      nodeMap.add(caseNodeId);
     });
 
     // 2. Position Entities and connect to cases
@@ -107,78 +164,185 @@ export const InvestigationGraph: React.FC<Props> = ({ focusedCaseId }) => {
       entityGroups.get(key)!.push(ent);
     });
 
-    let entIdx = 0;
-    const totalEnts = entityGroups.size;
-    const entRadius = 140;
+    // Separate shared entities vs unique entities
+    const sharedEntities: { key: string; list: Entity[]; sourceCases: string[] }[] = [];
+    const uniqueEntitiesByCase = new Map<string, { key: string; list: Entity[] }[]>();
 
-    entityGroups.forEach((entList, key) => {
-      // If shared across cases or focused case
-      const sourceCases = Array.from(new Set(entList.map(e => e.source_case_id)));
-      const isShared = sourceCases.length > 1;
+    entityGroups.forEach((list, key) => {
+      const sourceCases = Array.from(new Set(list.map(e => e.source_case_id)));
+      if (sourceCases.length > 1) {
+        sharedEntities.push({ key, list, sourceCases });
+      } else {
+        if (sharedOnly) return; // Skip unique if shared-only filter is active
+        const cNum = sourceCases[0];
+        if (!uniqueEntitiesByCase.has(cNum)) uniqueEntitiesByCase.set(cNum, []);
+        uniqueEntitiesByCase.get(cNum)!.push({ key, list });
+      }
+    });
 
-      // Position shared entities closer to center, unique entities around their case
+    // 3. Position Shared Entities in the central ring or between connected cases
+    const totalShared = sharedEntities.length;
+    sharedEntities.forEach((item, sIdx) => {
+      const repEntity = item.list[0];
+      const entityNodeId = `node-ent-${repEntity.id}`;
+
+      // Calculate centroid of connected cases
+      let sumX = 0;
+      let sumY = 0;
+      let count = 0;
+
+      item.sourceCases.forEach(cNum => {
+        const cNode = calculatedNodes.find(n => n.id === `node-case-${cNum}`);
+        if (cNode) {
+          sumX += cNode.x;
+          sumY += cNode.y;
+          count++;
+        }
+      });
+
       let x = centerX;
       let y = centerY;
 
-      if (isShared) {
-        const angle = (entIdx / Math.max(1, totalEnts)) * 2 * Math.PI;
-        x = centerX + (entRadius * 0.7) * Math.cos(angle);
-        y = centerY + (entRadius * 0.7) * Math.sin(angle);
+      if (count >= 2) {
+        // Position at centroid with slight offset based on index to prevent stacking
+        const rawCentroidX = sumX / count;
+        const rawCentroidY = sumY / count;
+        const angle = (sIdx / Math.max(1, totalShared)) * 2 * Math.PI;
+        const radialPull = 0.55; // 55% between center and centroid
+        x = centerX + (rawCentroidX - centerX) * radialPull + 24 * Math.cos(angle);
+        y = centerY + (rawCentroidY - centerY) * radialPull + 24 * Math.sin(angle);
       } else {
-        const parentCaseNode = calculatedNodes.find(n => n.id === `node-case-${sourceCases[0]}`);
-        if (parentCaseNode) {
-          const offsetAngle = (entIdx * 1.5);
-          x = parentCaseNode.x + 80 * Math.cos(offsetAngle);
-          y = parentCaseNode.y + 80 * Math.sin(offsetAngle);
-        }
+        const angle = (sIdx / Math.max(1, totalShared)) * 2 * Math.PI;
+        x = centerX + 110 * Math.cos(angle);
+        y = centerY + 110 * Math.sin(angle);
       }
-
-      const repEntity = entList[0];
-      const entityNodeId = `node-ent-${repEntity.id}`;
 
       const entNode: GraphNode = {
         id: entityNodeId,
-        label: `${repEntity.type}: ${repEntity.normalized_value}`,
+        label: repEntity.normalized_value,
+        subLabel: repEntity.type,
         type: 'ENTITY',
         entityType: repEntity.type,
         x,
         y,
         data: {
           entity: repEntity,
-          allOccurrences: entList,
-          isShared,
-          linkedCases: sourceCases,
+          allOccurrences: item.list,
+          isShared: true,
+          linkedCases: item.sourceCases,
         },
       };
 
       calculatedNodes.push(entNode);
       nodeMap.add(entityNodeId);
 
-      // Add edges from this entity to all cases where it appears
-      sourceCases.forEach(cNum => {
+      // Connect to all source cases
+      item.sourceCases.forEach(cNum => {
         const caseNodeId = `node-case-${cNum}`;
         if (nodeMap.has(caseNodeId)) {
           calculatedEdges.push({
             id: `edge-${cNum}-${entityNodeId}`,
             source: caseNodeId,
             target: entityNodeId,
-            isHighConfidence: isShared,
+            isHighConfidence: true,
           });
+          addConnection(caseNodeId, entityNodeId);
         }
       });
-
-      entIdx++;
     });
 
-    return { nodes: calculatedNodes, edges: calculatedEdges };
-  }, [cases, entities, connections, focusedCaseId, filterType]);
+    // 4. Position Unique Entities fanned radially outward from each case
+    uniqueEntitiesByCase.forEach((entItemList, cNum) => {
+      const parentCaseNode = calculatedNodes.find(n => n.id === `node-case-${cNum}`);
+      if (!parentCaseNode) return;
 
-  // Pan / Drag handlers
-  const handleMouseDown = (e: React.MouseEvent) => {
-    if (e.target instanceof SVGElement && e.target.tagName === 'svg') {
-      setIsDragging(true);
-      setDragStart({ x: e.clientX - pan.x, y: e.clientY - pan.y });
+      // Direction angle from canvas center to this case
+      const baseAngle = Math.atan2(parentCaseNode.y - centerY, parentCaseNode.x - centerX);
+      const totalForThisCase = Math.min(entItemList.length, 6); // Max 6 unique per case for visual clarity
+      const spreadArc = Math.PI * 0.7; // 126 degree fan outward
+      const orbitDistance = 88;
+
+      entItemList.slice(0, totalForThisCase).forEach((item, uIdx) => {
+        const repEntity = item.list[0];
+        const entityNodeId = `node-ent-${repEntity.id}`;
+
+        const angleOffset = totalForThisCase === 1 
+          ? 0 
+          : -spreadArc / 2 + (uIdx / (totalForThisCase - 1)) * spreadArc;
+        
+        const finalAngle = baseAngle + angleOffset;
+        const x = parentCaseNode.x + orbitDistance * Math.cos(finalAngle);
+        const y = parentCaseNode.y + orbitDistance * Math.sin(finalAngle);
+
+        const entNode: GraphNode = {
+          id: entityNodeId,
+          label: repEntity.normalized_value,
+          subLabel: repEntity.type,
+          type: 'ENTITY',
+          entityType: repEntity.type,
+          x,
+          y,
+          data: {
+            entity: repEntity,
+            allOccurrences: item.list,
+            isShared: false,
+            linkedCases: [cNum],
+          },
+        };
+
+        calculatedNodes.push(entNode);
+        nodeMap.add(entityNodeId);
+
+        const caseNodeId = `node-case-${cNum}`;
+        calculatedEdges.push({
+          id: `edge-${cNum}-${entityNodeId}`,
+          source: caseNodeId,
+          target: entityNodeId,
+          isHighConfidence: false,
+        });
+        addConnection(caseNodeId, entityNodeId);
+      });
+    });
+
+    return { 
+      nodes: calculatedNodes, 
+      edges: calculatedEdges, 
+      connectedNodeMap: connectionsMap 
+    };
+  }, [cases, entities, connections, focusedCaseId, filterType, sharedOnly]);
+
+  // Determine active highlight state
+  const activeFocusId = hoveredNodeId || selectedNode?.id;
+  const connectedToActive = useMemo(() => {
+    if (!activeFocusId) return null;
+    const set = new Set<string>([activeFocusId]);
+    const neighbors = connectedNodeMap.get(activeFocusId);
+    if (neighbors) {
+      neighbors.forEach(nId => set.add(nId));
     }
+    return set;
+  }, [activeFocusId, connectedNodeMap]);
+
+  // Search matching node
+  const searchedNodeIds = useMemo(() => {
+    if (!searchTerm.trim()) return null;
+    const term = searchTerm.toLowerCase();
+    const set = new Set<string>();
+    nodes.forEach(n => {
+      if (
+        n.label.toLowerCase().includes(term) ||
+        (n.subLabel && n.subLabel.toLowerCase().includes(term))
+      ) {
+        set.add(n.id);
+      }
+    });
+    return set;
+  }, [searchTerm, nodes]);
+
+  // Pan / Drag handlers with Mouse and Touch support
+  const handleMouseDown = (e: React.MouseEvent) => {
+    setIsDragging(true);
+    setDragStart({ x: e.clientX - pan.x, y: e.clientY - pan.y });
   };
 
   const handleMouseMove = (e: React.MouseEvent) => {
@@ -189,87 +353,218 @@ export const InvestigationGraph: React.FC<Props> = ({ focusedCaseId }) => {
 
   const handleMouseUp = () => setIsDragging(false);
 
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (e.touches.length === 1) {
+      setIsDragging(true);
+      setDragStart({ x: e.touches[0].clientX - pan.x, y: e.touches[0].clientY - pan.y });
+    }
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (isDragging && e.touches.length === 1) {
+      setPan({ x: e.touches[0].clientX - dragStart.x, y: e.touches[0].clientY - dragStart.y });
+    }
+  };
+
+  const handleTouchEnd = () => setIsDragging(false);
+
+  const handleWheel = (e: React.WheelEvent) => {
+    e.preventDefault();
+    const zoomFactor = e.deltaY < 0 ? 1.1 : 0.9;
+    setZoom(z => Math.max(0.4, Math.min(2.5, z * zoomFactor)));
+  };
+
+  const resetView = useCallback(() => {
+    setZoom(1);
+    setPan({ x: 0, y: 0 });
+    setSelectedNode(null);
+    setHoveredNodeId(null);
+  }, []);
+
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       {/* Controls & Filter Bar */}
-      <div className="p-3 bg-[#121619] rounded-lg border border-[#242B30] flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center space-x-2">
-          <GitBranch className="w-4 h-4 text-[#81A2A2]" />
-          <span className="text-xs font-bold text-[#F2F2F2]">
-            {focusedCaseId ? `Relationship Subgraph for ${focusedCaseId}` : 'Cross-Case Investigation Intelligence Graph'}
+      <div className="p-3 bg-[#121619] rounded-lg border border-[#242B30] flex flex-col md:flex-row md:items-center justify-between gap-3">
+        {/* Left: Title, Badges & Search */}
+        <div className="flex flex-wrap items-center gap-2.5">
+          <div className="flex items-center space-x-2">
+            <GitBranch className="w-4 h-4 text-[#81A2A2]" />
+            <span className="text-xs font-bold text-[#F2F2F2]">
+              {focusedCaseId ? `Link Subgraph: ${focusedCaseId}` : 'Cross-Case Investigation Graph'}
+            </span>
+          </div>
+
+          <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[#060606] text-[#81A2A2] border border-[#242B30]">
+            {nodes.length} nodes • {edges.length} links
           </span>
-          <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[#060606] text-[#8A9399] border border-[#242B30]">
-            {nodes.length} nodes • {edges.length} connections
-          </span>
+
+          {/* Quick Search */}
+          <div className="relative">
+            <Search className="w-3.5 h-3.5 text-[#5F686E] absolute left-2.5 top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
+              placeholder="Find node / indicator..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="bg-[#060606] border border-[#242B30] focus:border-[#81A2A2] rounded pl-8 pr-2.5 py-1 text-xs text-[#F2F2F2] outline-none font-mono w-44"
+            />
+            {searchTerm && (
+              <button
+                onClick={() => setSearchTerm('')}
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-[#5F686E] hover:text-[#F2F2F2]"
+              >
+                <X className="w-3 h-3" />
+              </button>
+            )}
+          </div>
         </div>
 
-        {/* Filter by Entity Type */}
-        <div className="flex items-center space-x-2">
-          <span className="text-[11px] text-[#5F686E]">Filter Indicators:</span>
+        {/* Right: Filters & Zoom Controls */}
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Shared Only Toggle */}
+          <button
+            onClick={() => setSharedOnly(prev => !prev)}
+            className={`px-2.5 py-1 rounded text-xs font-mono transition-colors border ${
+              sharedOnly
+                ? 'bg-[#F5C451]/20 text-[#F5C451] border-[#F5C451]/40'
+                : 'bg-[#060606] text-[#8A9399] border-[#242B30] hover:text-[#F2F2F2]'
+            }`}
+          >
+            {sharedOnly ? '★ Shared Leads Only' : 'All Indicators'}
+          </button>
+
+          {/* Filter by Entity Type */}
           <select
             value={filterType}
             onChange={(e) => setFilterType(e.target.value)}
-            className="bg-[#060606] border border-[#242B30] focus:border-[#81A2A2] rounded px-2 py-1 text-xs text-[#F2F2F2] outline-none font-mono"
+            className="bg-[#060606] border border-[#242B30] focus:border-[#81A2A2] rounded px-2.5 py-1 text-xs text-[#F2F2F2] outline-none font-mono"
           >
-            <option value="ALL">All Indicator Types</option>
-            <option value="PHONE">PHONE</option>
-            <option value="UPI">UPI</option>
-            <option value="WEBSITE">WEBSITE / DOMAIN</option>
-            <option value="EMAIL">EMAIL</option>
-            <option value="IP_ADDRESS">IP ADDRESS</option>
-            <option value="TRANSACTION">TRANSACTION</option>
+            <option value="ALL">All Types</option>
+            <option value="PHONE">Phone (PHONE)</option>
+            <option value="UPI">UPI (UPI)</option>
+            <option value="WEBSITE">Domain (WEBSITE)</option>
+            <option value="EMAIL">Email (EMAIL)</option>
+            <option value="IP_ADDRESS">IP (IP_ADDRESS)</option>
+            <option value="TRANSACTION">Bank/Tx (TRANSACTION)</option>
           </select>
 
-          {/* Zoom controls */}
-          <div className="flex items-center space-x-1 pl-2 border-l border-[#242B30]">
+          {/* Zoom & Fit Actions */}
+          <div className="flex items-center space-x-1 pl-1 border-l border-[#242B30]">
             <button
               onClick={() => setZoom(z => Math.min(2.5, z + 0.2))}
-              className="p-1 rounded bg-[#060606] hover:bg-[#242B30] text-[#8A9399] hover:text-[#F2F2F2] border border-[#242B30]"
+              className="p-1 rounded bg-[#060606] hover:bg-[#242B30] text-[#8A9399] hover:text-[#F2F2F2] border border-[#242B30] transition-colors"
               title="Zoom In"
             >
               <ZoomIn className="w-3.5 h-3.5" />
             </button>
             <button
               onClick={() => setZoom(z => Math.max(0.4, z - 0.2))}
-              className="p-1 rounded bg-[#060606] hover:bg-[#242B30] text-[#8A9399] hover:text-[#F2F2F2] border border-[#242B30]"
+              className="p-1 rounded bg-[#060606] hover:bg-[#242B30] text-[#8A9399] hover:text-[#F2F2F2] border border-[#242B30] transition-colors"
               title="Zoom Out"
             >
               <ZoomOut className="w-3.5 h-3.5" />
             </button>
             <button
-              onClick={() => { setZoom(1); setPan({ x: 0, y: 0 }); }}
-              className="p-1 rounded bg-[#060606] hover:bg-[#242B30] text-[#8A9399] hover:text-[#F2F2F2] border border-[#242B30]"
-              title="Reset View"
+              onClick={resetView}
+              className="px-2 py-1 rounded bg-[#060606] hover:bg-[#242B30] text-[#8A9399] hover:text-[#F2F2F2] border border-[#242B30] text-[11px] font-mono flex items-center space-x-1 transition-colors"
+              title="Reset Zoom & Pan"
             >
-              <RotateCcw className="w-3.5 h-3.5" />
+              <RotateCcw className="w-3 h-3" />
+              <span className="hidden sm:inline">Fit</span>
             </button>
           </div>
         </div>
       </div>
 
       {/* Main Canvas & Inspection Drawer */}
-      <div className="relative h-[600px] bg-[#060606] border border-[#242B30] rounded-lg overflow-hidden flex">
-        {/* SVG Network Graph */}
+      <div 
+        className="relative h-[480px] sm:h-[620px] bg-[#060606] border border-[#242B30] rounded-lg overflow-hidden flex select-none"
+        onWheel={handleWheel}
+      >
+        {/* SVG Network Graph with ViewBox and Auto-Centering */}
         <svg
-          className="w-full h-full cursor-grab active:cursor-grabbing select-none"
+          ref={svgRef}
+          viewBox="0 0 1100 750"
+          preserveAspectRatio="xMidYMid meet"
+          className="w-full h-full cursor-grab active:cursor-grabbing"
           onMouseDown={handleMouseDown}
           onMouseMove={handleMouseMove}
           onMouseUp={handleMouseUp}
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
         >
-          {/* Grid Background Pattern */}
+          {/* SVG Definitions & Gradients */}
           <defs>
-            <pattern id="graph-grid" width="30" height="30" patternUnits="userSpaceOnUse">
-              <path d="M 30 0 L 0 0 0 30" fill="none" stroke="#121619" strokeWidth="1" />
+            <pattern id="graph-grid" width="36" height="36" patternUnits="userSpaceOnUse">
+              <path d="M 36 0 L 0 0 0 36" fill="none" stroke="#121619" strokeWidth="1" />
             </pattern>
+            {/* Glow Filter for Verified / Shared Links */}
+            <filter id="glow-verified" x="-20%" y="-20%" width="140%" height="140%">
+              <feGaussianBlur stdDeviation="3" result="blur" />
+              <feMerge>
+                <feMergeNode in="blur" />
+                <feMergeNode in="SourceGraphic" />
+              </feMerge>
+            </filter>
+            <filter id="glow-highlight" x="-20%" y="-20%" width="140%" height="140%">
+              <feGaussianBlur stdDeviation="4" result="blur" />
+              <feMerge>
+                <feMergeNode in="blur" />
+                <feMergeNode in="SourceGraphic" />
+              </feMerge>
+            </filter>
           </defs>
+
+          {/* Grid Background */}
           <rect width="100%" height="100%" fill="url(#graph-grid)" />
 
-          <g transform={`translate(${pan.x}, ${pan.y}) scale(${zoom})`}>
-            {/* Edges */}
+          {/* Center Nexus Decorative Rings */}
+          <circle cx="550" cy="375" r="110" fill="none" stroke="#242B30" strokeWidth="1" strokeDasharray="3 3" opacity="0.4" />
+          <circle cx="550" cy="375" r="230" fill="none" stroke="#242B30" strokeWidth="1" strokeDasharray="4 4" opacity="0.3" />
+
+          {/* Graph Content Group with Pan and Zoom */}
+          <g transform={`translate(${pan.x}, ${pan.y}) scale(${zoom})`} transform-origin="550 375">
+            {/* Edges Rendering */}
             {edges.map((edge) => {
               const sourceNode = nodes.find(n => n.id === edge.source);
               const targetNode = nodes.find(n => n.id === edge.target);
               if (!sourceNode || !targetNode) return null;
+
+              const isEdgeActive = connectedToActive 
+                ? connectedToActive.has(edge.source) && connectedToActive.has(edge.target)
+                : true;
+
+              const isSearched = searchedNodeIds
+                ? searchedNodeIds.has(edge.source) || searchedNodeIds.has(edge.target)
+                : false;
+
+              let strokeColor = '#242B30';
+              let strokeWidth = 1.2;
+              let strokeDasharray = '3 3';
+              let opacity = 0.5;
+
+              if (edge.isHighConfidence) {
+                strokeColor = '#F5C451';
+                strokeWidth = 1.8;
+                strokeDasharray = 'none';
+                opacity = 0.85;
+              }
+
+              if (isEdgeActive && activeFocusId) {
+                strokeColor = '#81A2A2';
+                strokeWidth = 2.5;
+                strokeDasharray = 'none';
+                opacity = 1;
+              } else if (connectedToActive && !isEdgeActive) {
+                opacity = 0.12;
+              }
+
+              if (isSearched) {
+                strokeColor = '#B7FF3C';
+                strokeWidth = 2.2;
+                opacity = 1;
+              }
 
               return (
                 <line
@@ -278,18 +573,26 @@ export const InvestigationGraph: React.FC<Props> = ({ focusedCaseId }) => {
                   y1={sourceNode.y}
                   x2={targetNode.x}
                   y2={targetNode.y}
-                  stroke={edge.isHighConfidence ? '#81A2A2' : '#242B30'}
-                  strokeWidth={edge.isHighConfidence ? 2 : 1}
-                  strokeDasharray={edge.isHighConfidence ? 'none' : '4,4'}
-                  opacity={0.7}
+                  stroke={strokeColor}
+                  strokeWidth={strokeWidth}
+                  strokeDasharray={strokeDasharray}
+                  opacity={opacity}
+                  filter={isEdgeActive && activeFocusId ? 'url(#glow-highlight)' : undefined}
+                  className="transition-opacity duration-200"
                 />
               );
             })}
 
-            {/* Nodes */}
+            {/* Nodes Rendering */}
             {nodes.map((node) => {
               const isSelected = selectedNode?.id === node.id;
+              const isHovered = hoveredNodeId === node.id;
+              const isConnected = connectedToActive ? connectedToActive.has(node.id) : true;
+              const isSearched = searchedNodeIds ? searchedNodeIds.has(node.id) : false;
 
+              const opacity = connectedToActive && !isConnected ? 0.2 : 1;
+
+              // CASE NODE
               if (node.type === 'CASE') {
                 const c = node.data as Case;
                 const isCurrent = c.case_number === focusedCaseId;
@@ -298,39 +601,68 @@ export const InvestigationGraph: React.FC<Props> = ({ focusedCaseId }) => {
                   <g
                     key={node.id}
                     transform={`translate(${node.x}, ${node.y})`}
-                    onClick={() => setSelectedNode(node)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelectedNode(node);
+                    }}
+                    onMouseEnter={() => setHoveredNodeId(node.id)}
+                    onMouseLeave={() => setHoveredNodeId(null)}
                     className="cursor-pointer group"
+                    opacity={opacity}
                   >
+                    {/* Case Node Card Rect */}
                     <rect
-                      x="-55"
-                      y="-25"
-                      width="110"
-                      height="50"
-                      rx="6"
+                      x="-64"
+                      y="-26"
+                      width="128"
+                      height="52"
+                      rx="8"
                       fill="#121619"
-                      stroke={isSelected ? '#81A2A2' : isCurrent ? '#B7FF3C' : '#454F56'}
-                      strokeWidth={isSelected || isCurrent ? 2 : 1}
-                      className="transition-colors"
+                      stroke={
+                        isSearched ? '#B7FF3C' :
+                        isSelected ? '#81A2A2' : 
+                        isHovered ? '#81A2A2' : 
+                        isCurrent ? '#B7FF3C' : '#454F56'
+                      }
+                      strokeWidth={isSelected || isHovered || isCurrent || isSearched ? 2.5 : 1.2}
+                      filter={isSelected || isHovered || isSearched ? 'url(#glow-highlight)' : undefined}
+                      className="transition-all duration-150"
                     />
+
+                    {/* Priority Accent Dot */}
+                    <circle
+                      cx="-48"
+                      cy="-12"
+                      r="4"
+                      fill={
+                        c.priority === 'CRITICAL' ? '#FF4D4D' :
+                        c.priority === 'HIGH' ? '#F5C451' : '#81A2A2'
+                      }
+                    />
+
+                    {/* Case Number */}
                     <text
                       x="0"
-                      y="-4"
+                      y="-7"
                       textAnchor="middle"
                       fill="#F2F2F2"
-                      fontSize="11"
-                      fontFamily="JetBrains Mono"
+                      fontSize="12"
+                      fontFamily="JetBrains Mono, monospace"
                       fontWeight="bold"
                     >
                       {c.case_number}
                     </text>
+
+                    {/* Crime Type Subtitle */}
                     <text
                       x="0"
                       y="12"
                       textAnchor="middle"
                       fill="#8A9399"
-                      fontSize="9"
+                      fontSize="9.5"
+                      fontFamily="sans-serif"
                     >
-                      {c.crime_type.length > 14 ? c.crime_type.slice(0, 12) + '..' : c.crime_type}
+                      {c.crime_type.length > 15 ? c.crime_type.slice(0, 13) + '..' : c.crime_type}
                     </text>
                   </g>
                 );
@@ -339,117 +671,224 @@ export const InvestigationGraph: React.FC<Props> = ({ focusedCaseId }) => {
               // ENTITY NODE
               const entData = node.data;
               const isShared = entData.isShared;
+              const typeColor = getEntityColor(node.entityType);
 
               return (
                 <g
                   key={node.id}
                   transform={`translate(${node.x}, ${node.y})`}
-                  onClick={() => setSelectedNode(node)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setSelectedNode(node);
+                  }}
+                  onMouseEnter={() => setHoveredNodeId(node.id)}
+                  onMouseLeave={() => setHoveredNodeId(null)}
                   className="cursor-pointer group"
+                  opacity={opacity}
                 >
+                  {/* Entity Circle Icon Badge */}
                   <circle
-                    r={isShared ? 14 : 9}
-                    fill={isShared ? '#121619' : '#060606'}
-                    stroke={isSelected ? '#81A2A2' : isShared ? '#F5C451' : '#242B30'}
-                    strokeWidth={isSelected || isShared ? 2 : 1}
+                    r={isShared ? 15 : 10}
+                    fill="#060606"
+                    stroke={
+                      isSearched ? '#B7FF3C' :
+                      isSelected ? '#81A2A2' :
+                      isHovered ? '#81A2A2' :
+                      isShared ? '#F5C451' : typeColor
+                    }
+                    strokeWidth={isSelected || isHovered || isShared || isSearched ? 2.5 : 1.5}
+                    filter={isShared || isSelected || isHovered ? 'url(#glow-highlight)' : undefined}
+                    className="transition-all duration-150"
                   />
+
+                  {/* Shared Indicator Link Count Badge */}
                   {isShared && (
                     <text
                       x="0"
-                      y="3.5"
+                      y="4"
                       textAnchor="middle"
                       fill="#F5C451"
-                      fontSize="9"
-                      fontFamily="JetBrains Mono"
+                      fontSize="10"
+                      fontFamily="JetBrains Mono, monospace"
                       fontWeight="bold"
                     >
                       {entData.linkedCases.length}
                     </text>
                   )}
-                  <text
-                    x="0"
-                    y={isShared ? 26 : 20}
-                    textAnchor="middle"
-                    fill={isShared ? '#F2F2F2' : '#8A9399'}
-                    fontSize="9"
-                    fontFamily="JetBrains Mono"
-                    className="bg-[#060606] px-1"
-                  >
-                    {node.label.length > 20 ? node.label.slice(0, 18) + '..' : node.label}
-                  </text>
+
+                  {!isShared && (
+                    <circle
+                      r="3.5"
+                      fill={typeColor}
+                    />
+                  )}
+
+                  {/* Entity Label with Dark Halo */}
+                  <g transform={`translate(0, ${isShared ? 28 : 20})`}>
+                    <text
+                      x="0"
+                      y="0"
+                      textAnchor="middle"
+                      fill={isShared ? '#F2F2F2' : '#8A9399'}
+                      fontSize="9"
+                      fontFamily="JetBrains Mono, monospace"
+                      fontWeight={isShared ? 'bold' : 'normal'}
+                      stroke="#060606"
+                      strokeWidth="3"
+                      paintOrder="stroke"
+                    >
+                      {node.label.length > 20 ? node.label.slice(0, 18) + '..' : node.label}
+                    </text>
+                  </g>
                 </g>
               );
             })}
           </g>
         </svg>
 
+        {/* Bottom Graph Legend Overlay */}
+        <div className="absolute bottom-3 left-3 right-3 sm:right-auto bg-[#121619]/90 backdrop-blur-sm border border-[#242B30] rounded-lg p-2 px-3 text-[11px] font-mono flex flex-wrap items-center gap-3 text-[#8A9399] z-10">
+          <div className="flex items-center space-x-1.5">
+            <span className="w-3 h-3 rounded bg-[#121619] border border-[#81A2A2]" />
+            <span className="text-[#F2F2F2]">Case Node</span>
+          </div>
+
+          <div className="flex items-center space-x-1.5">
+            <span className="w-3 h-3 rounded-full bg-[#060606] border-2 border-[#F5C451] flex items-center justify-center text-[8px] text-[#F5C451] font-bold">2</span>
+            <span className="text-[#F5C451]">Shared Indicator</span>
+          </div>
+
+          <div className="flex items-center space-x-1.5">
+            <span className="w-2.5 h-2.5 rounded-full bg-[#81A2A2]" />
+            <span>Phone</span>
+          </div>
+
+          <div className="flex items-center space-x-1.5">
+            <span className="w-2.5 h-2.5 rounded-full bg-[#B7FF3C]" />
+            <span>UPI</span>
+          </div>
+
+          <div className="flex items-center space-x-1.5">
+            <span className="w-2.5 h-2.5 rounded-full bg-[#F5C451]" />
+            <span>Domain</span>
+          </div>
+
+          <div className="flex items-center space-x-1.5">
+            <span className="w-2.5 h-2.5 rounded-full bg-[#A78BFA]" />
+            <span>Email</span>
+          </div>
+
+          <div className="hidden md:flex items-center space-x-1.5 text-[#5F686E] pl-2 border-l border-[#242B30]">
+            <span>Click any node to inspect provenance</span>
+          </div>
+        </div>
+
         {/* Node Detail Side Panel */}
         {selectedNode && (
-          <div className="absolute right-0 top-0 bottom-0 w-80 bg-[#121619]/95 backdrop-blur-md border-l border-[#454F56] p-4 shadow-xl overflow-y-auto space-y-4 text-xs z-20">
+          <div className="absolute right-0 top-0 bottom-0 w-full sm:w-84 bg-[#121619]/98 sm:bg-[#121619]/95 backdrop-blur-md border-l border-[#454F56] p-4 shadow-2xl overflow-y-auto space-y-4 text-xs z-20 animate-in slide-in-from-right duration-200">
             <div className="flex items-center justify-between pb-2 border-b border-[#242B30]">
-              <span className="text-[10px] font-mono uppercase tracking-wider text-[#8A9399]">
-                {selectedNode.type} Node Details
+              <span className="text-[10px] font-mono uppercase tracking-wider text-[#8A9399] flex items-center space-x-1.5">
+                <Sparkles className="w-3.5 h-3.5 text-[#81A2A2]" />
+                <span>{selectedNode.type} Node Details</span>
               </span>
               <button
                 onClick={() => setSelectedNode(null)}
-                className="text-[#8A9399] hover:text-[#F2F2F2]"
+                className="text-[#8A9399] hover:text-[#F2F2F2] p-1"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
             {selectedNode.type === 'CASE' && (
-              <div className="space-y-3">
+              <div className="space-y-3.5">
                 <div>
-                  <div className="text-[10px] font-mono text-[#81A2A2] font-bold">
-                    {selectedNode.data.case_number}
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-mono text-[#81A2A2] font-bold bg-[#060606] px-2 py-0.5 rounded border border-[#242B30]">
+                      {selectedNode.data.case_number}
+                    </span>
+                    <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded ${
+                      selectedNode.data.priority === 'CRITICAL' ? 'bg-[#FF4D4D]/10 text-[#FF4D4D] border border-[#FF4D4D]/30' :
+                      selectedNode.data.priority === 'HIGH' ? 'bg-[#F5C451]/10 text-[#F5C451] border border-[#F5C451]/30' :
+                      'bg-[#242B30] text-[#8A9399]'
+                    }`}>
+                      {selectedNode.data.priority}
+                    </span>
                   </div>
-                  <h4 className="text-sm font-bold text-[#F2F2F2] mt-0.5">
+                  <h4 className="text-sm font-bold text-[#F2F2F2] mt-2">
                     {selectedNode.data.title}
                   </h4>
                 </div>
 
-                <div className="space-y-1.5 text-[11px] text-[#8A9399]">
-                  <div><strong className="text-[#F2F2F2]">Crime Type:</strong> {selectedNode.data.crime_type}</div>
-                  <div><strong className="text-[#F2F2F2]">Priority:</strong> {selectedNode.data.priority}</div>
-                  <div><strong className="text-[#F2F2F2]">Status:</strong> {selectedNode.data.status}</div>
-                  <div><strong className="text-[#F2F2F2]">Officer:</strong> {selectedNode.data.assigned_officer}</div>
+                <div className="grid grid-cols-2 gap-2 text-[11px] bg-[#060606] p-2.5 rounded border border-[#242B30]">
+                  <div>
+                    <span className="text-[#5F686E] text-[10px] block">Crime Type:</span>
+                    <span className="text-[#F2F2F2] font-medium">{selectedNode.data.crime_type}</span>
+                  </div>
+                  <div>
+                    <span className="text-[#5F686E] text-[10px] block">Status:</span>
+                    <span className="text-[#81A2A2] font-mono">{selectedNode.data.status}</span>
+                  </div>
+                  <div>
+                    <span className="text-[#5F686E] text-[10px] block">Officer:</span>
+                    <span className="text-[#F2F2F2]">{selectedNode.data.assigned_officer || 'Unassigned'}</span>
+                  </div>
+                  <div>
+                    <span className="text-[#5F686E] text-[10px] block">Jurisdiction:</span>
+                    <span className="text-[#F2F2F2]">{selectedNode.data.jurisdiction || 'Metro'}</span>
+                  </div>
                 </div>
 
-                <p className="text-[11px] text-[#8A9399] leading-relaxed bg-[#060606] p-2.5 rounded border border-[#242B30]">
-                  {selectedNode.data.description}
-                </p>
+                <div className="space-y-1">
+                  <span className="text-[10px] font-mono text-[#5F686E] uppercase">Synopsis:</span>
+                  <p className="text-[11px] text-[#8A9399] leading-relaxed bg-[#060606] p-2.5 rounded border border-[#242B30]">
+                    {selectedNode.data.description}
+                  </p>
+                </div>
 
                 <button
                   onClick={() => {
                     setSelectedCaseId(selectedNode.data.case_number);
                     setActiveView('case-detail', selectedNode.data.case_number);
                   }}
-                  className="w-full py-2 bg-[#81A2A2] hover:bg-[#81A2A2]/90 text-[#060606] font-semibold rounded text-xs transition-colors flex items-center justify-center space-x-1.5"
+                  className="w-full py-2 bg-[#81A2A2] hover:bg-[#81A2A2]/90 text-[#060606] font-semibold rounded text-xs transition-colors flex items-center justify-center space-x-1.5 shadow-sm"
                 >
-                  <span>Open Case Workspace</span>
+                  <span>Open Full Case Workspace</span>
                   <ExternalLink className="w-3.5 h-3.5" />
                 </button>
               </div>
             )}
 
             {selectedNode.type === 'ENTITY' && (
-              <div className="space-y-3">
+              <div className="space-y-3.5">
                 <div>
-                  <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-[#060606] text-[#81A2A2] border border-[#81A2A2]/40">
+                  <span 
+                    className="text-[10px] font-mono font-bold px-2 py-0.5 rounded border"
+                    style={{
+                      backgroundColor: `${getEntityColor(selectedNode.entityType)}15`,
+                      color: getEntityColor(selectedNode.entityType),
+                      borderColor: `${getEntityColor(selectedNode.entityType)}40`,
+                    }}
+                  >
                     {selectedNode.data.entity.type}
                   </span>
-                  <div className="font-mono text-xs font-bold text-[#F2F2F2] mt-1.5">
+
+                  <div className="font-mono text-sm font-bold text-[#F2F2F2] mt-2 break-all">
                     {selectedNode.data.entity.value}
                   </div>
-                  <div className="text-[11px] font-mono text-[#5F686E]">
+                  <div className="text-[11px] font-mono text-[#5F686E] mt-0.5">
                     Normalized: {selectedNode.data.entity.normalized_value}
                   </div>
                 </div>
 
-                <div className="p-2.5 bg-[#060606] rounded border border-[#242B30] space-y-2">
-                  <div className="text-[10px] font-mono uppercase text-[#8A9399]">
-                    Linked Across {(selectedNode.data?.linkedCases || []).length} Investigation Case(s):
+                {/* Linked Cases List */}
+                <div className="p-3 bg-[#060606] rounded border border-[#242B30] space-y-2">
+                  <div className="text-[10px] font-mono uppercase text-[#8A9399] flex items-center justify-between">
+                    <span>Cross-Linked In {(selectedNode.data?.linkedCases || []).length} Investigation(s):</span>
+                    {selectedNode.data?.isShared && (
+                      <span className="px-1.5 py-0.2 bg-[#F5C451]/20 text-[#F5C451] text-[9px] rounded font-bold">
+                        MATCH FOUND
+                      </span>
+                    )}
                   </div>
                   <div className="flex flex-wrap gap-1.5">
                     {(selectedNode.data?.linkedCases || []).map((cNum: string) => (
@@ -459,22 +898,29 @@ export const InvestigationGraph: React.FC<Props> = ({ focusedCaseId }) => {
                           setSelectedCaseId(cNum);
                           setActiveView('case-detail', cNum);
                         }}
-                        className="px-2 py-0.5 rounded bg-[#121619] hover:bg-[#242B30] text-[#81A2A2] font-mono text-[11px] border border-[#454F56]/40"
+                        className="px-2.5 py-1 rounded bg-[#121619] hover:bg-[#242B30] text-[#81A2A2] font-mono text-xs border border-[#454F56]/40 hover:border-[#81A2A2] transition-colors"
                       >
-                        {cNum}
+                        {cNum} →
                       </button>
                     ))}
                   </div>
                 </div>
 
+                {/* Provenance Snippet */}
                 {selectedNode.data.entity.source_context && (
-                  <div className="space-y-1">
-                    <div className="text-[10px] font-mono text-[#5F686E] uppercase">Provenance Snippet:</div>
-                    <div className="text-[11px] font-mono text-[#8A9399] italic bg-[#060606] p-2 rounded border border-[#242B30]">
+                  <div className="space-y-1.5">
+                    <div className="text-[10px] font-mono text-[#5F686E] uppercase">Source Provenance Extract:</div>
+                    <div className="text-[11px] font-mono text-[#8A9399] leading-relaxed bg-[#060606] p-2.5 rounded border border-[#242B30]">
                       "{selectedNode.data.entity.source_context}"
                     </div>
                   </div>
                 )}
+
+                {/* Extracted Evidence Metadata */}
+                <div className="text-[10px] font-mono text-[#5F686E] space-y-1 pt-1">
+                  <div>Source Evidence: <span className="text-[#F2F2F2]">{selectedNode.data.entity.source_evidence_name || 'Direct Ingest'}</span></div>
+                  <div>Extracted At: <span className="text-[#F2F2F2]">{selectedNode.data.entity.extracted_at?.substring(0, 19).replace('T', ' ') || 'Real-time'}</span></div>
+                </div>
               </div>
             )}
           </div>

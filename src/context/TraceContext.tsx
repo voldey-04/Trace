@@ -25,6 +25,7 @@ interface TraceContextType {
   searchQuery: string;
   isProcessing: boolean;
   activeNotification: { title: string; message: string; type: 'success' | 'info' | 'warning' } | null;
+  mobileMenuOpen: boolean;
 
   // Actions
   setActiveView: (view: ActiveView, caseId?: string, connectionId?: string) => void;
@@ -32,6 +33,7 @@ interface TraceContextType {
   setSelectedConnectionId: (id: string | null) => void;
   setSelectedEvidenceId: (id: string | null) => void;
   setSearchQuery: (query: string) => void;
+  setMobileMenuOpen: (open: boolean) => void;
   clearNotification: () => void;
 
   addCase: (data: Omit<Case, 'id' | 'case_number' | 'created_at' | 'updated_at'>) => Case;
@@ -128,6 +130,7 @@ export const TraceProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [searchQuery, setSearchQuery] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [activeNotification, setActiveNotification] = useState<{ title: string; message: string; type: 'success' | 'info' | 'warning' } | null>(null);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   // Sync to localStorage
   useEffect(() => {
@@ -144,6 +147,7 @@ export const TraceProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const setActiveView = (view: ActiveView, caseId?: string, connectionId?: string) => {
     setActiveViewInternal(view);
+    setMobileMenuOpen(false);
     if (caseId !== undefined) setSelectedCaseId(caseId);
     if (connectionId !== undefined) setSelectedConnectionId(connectionId);
   };
@@ -768,11 +772,13 @@ export const TraceProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         searchQuery,
         isProcessing,
         activeNotification,
+        mobileMenuOpen,
         setActiveView,
         setSelectedCaseId,
         setSelectedConnectionId,
         setSelectedEvidenceId,
         setSearchQuery,
+        setMobileMenuOpen,
         clearNotification,
         addCase,
         updateCase,

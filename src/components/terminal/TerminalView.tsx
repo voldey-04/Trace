@@ -167,13 +167,13 @@ export const TerminalView: React.FC = () => {
       </div>
 
       {/* Quick Command Chips */}
-      <div className="flex flex-wrap items-center gap-1.5 p-2.5 bg-[#060606] rounded-lg border border-[#242B30] text-xs">
-        <span className="text-[10px] font-mono uppercase text-[#5F686E] px-1">Quick Run:</span>
+      <div className="flex items-center gap-1.5 p-2 sm:p-2.5 bg-[#060606] rounded-lg border border-[#242B30] text-xs overflow-x-auto no-scrollbar whitespace-nowrap">
+        <span className="text-[10px] font-mono uppercase text-[#5F686E] px-1 shrink-0">Quick Run:</span>
         {QUICK_COMMANDS.map((cmd) => (
           <button
             key={cmd}
             onClick={() => runCommand(cmd)}
-            className="px-2 py-0.5 font-mono text-[11px] bg-[#121619] hover:bg-[#242B30] text-[#81A2A2] hover:text-[#F2F2F2] rounded border border-[#242B30] transition-colors"
+            className="px-2 py-0.5 font-mono text-[11px] bg-[#121619] hover:bg-[#242B30] text-[#81A2A2] hover:text-[#F2F2F2] rounded border border-[#242B30] transition-colors shrink-0"
           >
             {cmd}
           </button>
@@ -183,17 +183,17 @@ export const TerminalView: React.FC = () => {
       {/* Terminal Screen Canvas */}
       <div 
         onClick={() => inputRef.current?.focus()}
-        className="bg-[#060606] border border-[#454F56] rounded-lg p-5 min-h-[500px] max-h-[650px] flex flex-col font-mono text-xs shadow-2xl overflow-hidden cursor-text"
+        className="bg-[#060606] border border-[#454F56] rounded-lg p-3 sm:p-5 min-h-[380px] sm:min-h-[500px] max-h-[550px] sm:max-h-[650px] flex flex-col font-mono text-xs shadow-2xl overflow-hidden cursor-text"
       >
         {/* Terminal Title Bar */}
         <div className="flex items-center justify-between pb-3 mb-3 border-b border-[#242B30] text-[#5F686E] select-none">
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center space-x-1.5 sm:space-x-2">
             <span className="w-2.5 h-2.5 rounded-full bg-[#FF4D4D]/60" />
             <span className="w-2.5 h-2.5 rounded-full bg-[#F5C451]/60" />
             <span className="w-2.5 h-2.5 rounded-full bg-[#B7FF3C]/60" />
-            <span className="text-[11px] text-[#8A9399] ml-2">trace_shell_v1.0.4 (linux-x86_64)</span>
+            <span className="text-[10px] sm:text-[11px] text-[#8A9399] ml-1 sm:ml-2">trace_shell_v1.0.4</span>
           </div>
-          <div className="flex items-center space-x-3 text-[10px]">
+          <div className="flex items-center space-x-2 sm:space-x-3 text-[9px] sm:text-[10px]">
             <span className="text-[#81A2A2]">Cases: {(cases || []).length}</span>
             <span className="text-[#F5C451]">Links: {(connections || []).length}</span>
             <span className="text-[#B7FF3C]">ONLINE</span>
@@ -206,13 +206,13 @@ export const TerminalView: React.FC = () => {
             <div key={item.id} className="space-y-1">
               <div className="flex items-center space-x-2 text-[#81A2A2]">
                 <span className="text-[#5F686E]">trace@cyber-intel:~$</span>
-                <span className="font-bold text-[#F2F2F2]">{item.command}</span>
-                <span className="text-[10px] text-[#5F686E] ml-auto font-mono">
+                <span className="font-bold text-[#F2F2F2] break-all">{item.command}</span>
+                <span className="text-[10px] text-[#5F686E] ml-auto font-mono shrink-0">
                   {item.timestamp ? item.timestamp.substring(11, 19) : ''}
                 </span>
               </div>
 
-              <div className={`p-3 rounded border font-mono leading-relaxed whitespace-pre-wrap ${
+              <div className={`p-2.5 sm:p-3 rounded border font-mono text-[11px] sm:text-xs leading-relaxed whitespace-pre-wrap overflow-x-auto ${
                 item.type === 'SUCCESS' ? 'bg-[#121619]/90 border-[#242B30] text-[#F2F2F2]' :
                 item.type === 'ERROR' ? 'bg-[#FF4D4D]/10 border-[#FF4D4D]/30 text-[#FF4D4D]' :
                 item.type === 'WARNING' ? 'bg-[#F5C451]/10 border-[#F5C451]/30 text-[#F5C451]' :
@@ -227,20 +227,20 @@ export const TerminalView: React.FC = () => {
 
         {/* Interactive CLI Input Line */}
         <form onSubmit={handleSubmit} className="pt-3 mt-3 border-t border-[#242B30] flex items-center space-x-2">
-          <span className="text-[#81A2A2] font-bold shrink-0">trace@cyber-intel:~$</span>
+          <span className="text-[#81A2A2] font-bold shrink-0 text-[11px] sm:text-xs">trace@cyber-intel:~$</span>
           <input
             ref={inputRef}
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Type 'help', 'stats', 'cases', 'case CASE-008', 'search <indicator>', 'clear'..."
+            placeholder="Type 'help', 'stats', 'cases', 'search <indicator>', 'clear'..."
             className="w-full bg-transparent text-[#F2F2F2] focus:outline-none font-mono text-xs caret-[#81A2A2]"
             autoFocus
           />
           <button
             type="submit"
-            className="p-1 text-[#8A9399] hover:text-[#81A2A2] transition-colors"
+            className="p-1 text-[#8A9399] hover:text-[#81A2A2] transition-colors shrink-0"
           >
             <CornerDownLeft className="w-4 h-4" />
           </button>

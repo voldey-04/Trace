@@ -182,9 +182,9 @@ export const DashboardView: React.FC = () => {
               return (
                 <div
                   key={conn.id}
-                  className="p-4 rounded-lg bg-[#121619] border border-[#242B30] hover:border-[#454F56] transition-all"
+                  className="p-3 sm:p-4 rounded-lg bg-[#121619] border border-[#242B30] hover:border-[#454F56] transition-all"
                 >
-                  <div className="flex items-start justify-between gap-2 mb-2">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
                     <div className="flex items-center space-x-2">
                       <button
                         onClick={() => {
@@ -207,7 +207,7 @@ export const DashboardView: React.FC = () => {
                       </button>
                     </div>
 
-                    <div className="flex items-center space-x-2">
+                    <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
                       <span className={`text-[10px] font-mono px-2 py-0.5 rounded font-bold ${
                         conn.severity === 'HIGH' ? 'bg-[#FF4D4D]/10 text-[#FF4D4D] border border-[#FF4D4D]/30' :
                         conn.severity === 'MEDIUM' ? 'bg-[#F5C451]/10 text-[#F5C451] border border-[#F5C451]/30' :
@@ -227,7 +227,7 @@ export const DashboardView: React.FC = () => {
                   </div>
 
                   {/* Case Titles */}
-                  <div className="text-xs text-[#8A9399] mb-3 truncate">
+                  <div className="text-xs text-[#8A9399] mb-3 line-clamp-2 sm:truncate">
                     <span className="text-[#F2F2F2]">{caseAObj?.title}</span>
                     <span className="mx-1 text-[#5F686E]">•</span>
                     <span className="text-[#F2F2F2]">{caseBObj?.title}</span>
@@ -252,7 +252,7 @@ export const DashboardView: React.FC = () => {
                   </div>
 
                   {/* Quick Action Controls */}
-                  <div className="flex items-center justify-between pt-2 border-t border-[#242B30]/60 text-xs">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-2 border-t border-[#242B30]/60 text-xs">
                     <button
                       onClick={() => {
                         setSelectedConnectionId(conn.id);
@@ -268,13 +268,13 @@ export const DashboardView: React.FC = () => {
                       <div className="flex items-center space-x-2">
                         <button
                           onClick={() => dismissConnection(conn.id, 'Dismissed from Dashboard review')}
-                          className="px-2 py-1 text-[11px] text-[#8A9399] hover:text-[#FF4D4D] hover:bg-[#FF4D4D]/10 rounded border border-transparent hover:border-[#FF4D4D]/30 transition-colors"
+                          className="flex-1 sm:flex-initial px-3 py-1 text-[11px] text-[#8A9399] hover:text-[#FF4D4D] hover:bg-[#FF4D4D]/10 rounded border border-[#242B30] sm:border-transparent hover:border-[#FF4D4D]/30 transition-colors text-center"
                         >
                           Dismiss
                         </button>
                         <button
                           onClick={() => verifyConnection(conn.id, 'Verified from Dashboard review')}
-                          className="px-2.5 py-1 text-[11px] font-semibold text-[#060606] bg-[#B7FF3C] hover:bg-[#B7FF3C]/90 rounded transition-colors"
+                          className="flex-1 sm:flex-initial px-3 py-1 text-[11px] font-semibold text-[#060606] bg-[#B7FF3C] hover:bg-[#B7FF3C]/90 rounded transition-colors text-center"
                         >
                           Verify Link
                         </button>

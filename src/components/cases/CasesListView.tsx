@@ -209,25 +209,25 @@ export const CasesListView: React.FC = () => {
                 </div>
 
                 {/* Right: Metrics & Linkage */}
-                <div className="flex sm:items-center space-x-4 border-t lg:border-t-0 pt-3 lg:pt-0 border-[#242B30] shrink-0">
-                  <div className="text-center px-3 py-1 bg-[#060606] rounded border border-[#242B30]">
+                <div className="flex items-center justify-between sm:justify-start space-x-2 sm:space-x-4 border-t lg:border-t-0 pt-3 lg:pt-0 border-[#242B30] shrink-0">
+                  <div className="flex-1 sm:flex-initial text-center px-2 sm:px-3 py-1 bg-[#060606] rounded border border-[#242B30]">
                     <div className="text-[10px] font-mono text-[#5F686E]">Evidence</div>
                     <div className="text-xs font-mono font-bold text-[#F2F2F2]">{caseEv.length}</div>
                   </div>
 
-                  <div className="text-center px-3 py-1 bg-[#060606] rounded border border-[#242B30]">
+                  <div className="flex-1 sm:flex-initial text-center px-2 sm:px-3 py-1 bg-[#060606] rounded border border-[#242B30]">
                     <div className="text-[10px] font-mono text-[#5F686E]">Entities</div>
                     <div className="text-xs font-mono font-bold text-[#81A2A2]">{caseEnt.length}</div>
                   </div>
 
-                  <div className="text-center px-3 py-1 bg-[#060606] rounded border border-[#242B30]">
+                  <div className="flex-1 sm:flex-initial text-center px-2 sm:px-3 py-1 bg-[#060606] rounded border border-[#242B30]">
                     <div className="text-[10px] font-mono text-[#5F686E]">Cross-Links</div>
                     <div className="text-xs font-mono font-bold text-[#F5C451]">
                       {suggestedConnCount + verifiedConnCount}
                     </div>
                   </div>
 
-                  <ChevronRight className="w-5 h-5 text-[#5F686E] group-hover:text-[#81A2A2] transition-colors shrink-0" />
+                  <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5 text-[#5F686E] group-hover:text-[#81A2A2] transition-colors shrink-0" />
                 </div>
               </div>
             </div>

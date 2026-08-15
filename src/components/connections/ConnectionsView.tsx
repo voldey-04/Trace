@@ -235,18 +235,18 @@ export const ConnectionsView: React.FC = () => {
                     <ExternalLink className="w-3 h-3" />
                   </button>
 
-                  <div className="flex items-center space-x-2">
+                  <div className="flex items-center space-x-2 w-full sm:w-auto">
                     {conn.status === 'SUGGESTED' && (
                       <>
                         <button
                           onClick={() => dismissConnection(conn.id)}
-                          className="px-3 py-1.5 text-xs text-[#8A9399] hover:text-[#FF4D4D] hover:bg-[#FF4D4D]/10 rounded border border-[#242B30] hover:border-[#FF4D4D]/30 transition-colors"
+                          className="flex-1 sm:flex-initial px-3 py-1.5 text-xs text-[#8A9399] hover:text-[#FF4D4D] hover:bg-[#FF4D4D]/10 rounded border border-[#242B30] hover:border-[#FF4D4D]/30 transition-colors text-center"
                         >
                           Dismiss Lead
                         </button>
                         <button
                           onClick={() => verifyConnection(conn.id)}
-                          className="px-3.5 py-1.5 bg-[#B7FF3C] hover:bg-[#B7FF3C]/90 text-[#060606] font-semibold rounded text-xs transition-colors flex items-center space-x-1"
+                          className="flex-1 sm:flex-initial px-3.5 py-1.5 bg-[#B7FF3C] hover:bg-[#B7FF3C]/90 text-[#060606] font-semibold rounded text-xs transition-colors flex items-center justify-center space-x-1"
                         >
                           <ShieldCheck className="w-3.5 h-3.5" />
                           <span>Verify Connection</span>
