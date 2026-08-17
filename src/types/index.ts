@@ -33,6 +33,14 @@ export interface Case {
 export type FileType = 'TXT' | 'CSV' | 'PDF' | 'PNG' | 'JPG' | 'JPEG' | 'LOG';
 export type ProcessingStatus = 'UPLOADED' | 'PROCESSING' | 'PROCESSED' | 'FAILED';
 
+export interface ChainOfCustodyItem {
+  timestamp: string;
+  action: string;
+  actor: string;
+  status: 'VERIFIED' | 'COMPLETED' | 'PENDING' | 'SECURED';
+  details?: string;
+}
+
 export interface EvidenceMetadata {
   fileSize?: string;
   mimeType?: string;
@@ -42,6 +50,8 @@ export interface EvidenceMetadata {
   victimName?: string;
   incidentDate?: string;
   notes?: string;
+  integrityStatus?: 'VERIFIED' | 'UNMODIFIED' | 'PENDING' | 'DISCREPANCY';
+  chainOfCustody?: ChainOfCustodyItem[];
 }
 
 export interface Evidence {

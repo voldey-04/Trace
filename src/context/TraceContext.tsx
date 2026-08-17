@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
 import {
   ActiveView,
   Case,
@@ -123,6 +123,22 @@ export const TraceProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     return sanitizeArray<TimelineEvent>(buildInitialSeedState().timeline);
   });
 
+  // Maintain synchronous refs to prevent stale closure race conditions
+  const casesRef = useRef(cases);
+  casesRef.current = cases;
+
+  const evidenceRef = useRef(evidence);
+  evidenceRef.current = evidence;
+
+  const entitiesRef = useRef(entities);
+  entitiesRef.current = entities;
+
+  const connectionsRef = useRef(connections);
+  connectionsRef.current = connections;
+
+  const timelineRef = useRef(timeline);
+  timelineRef.current = timeline;
+
   const [activeView, setActiveViewInternal] = useState<ActiveView>('dashboard');
   const [selectedCaseId, setSelectedCaseId] = useState<string | null>(null);
   const [selectedConnectionId, setSelectedConnectionId] = useState<string | null>(null);
@@ -228,7 +244,8 @@ export const TraceProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       },
     };
 
-    setEvidence(prev => [newEvidence, ...prev]);
+    evidenceRef.current = [newEvidence, ...evidenceRef.current];
+    setEvidence(evidenceRef.current);
 
     // Record timeline
     const evEvent: TimelineEvent = {
@@ -239,7 +256,8 @@ export const TraceProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       description: `Evidence file ${fileData.fileName} uploaded to ${caseId}`,
       actor: 'Investigator',
     };
-    setTimeline(prev => [evEvent, ...prev]);
+    timelineRef.current = [evEvent, ...timelineRef.current];
+    setTimeline(timelineRef.current);
 
     return newEvidence;
   };
@@ -247,17 +265,20 @@ export const TraceProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const processEvidence = async (evidenceId: string): Promise<{ newEntities: Entity[]; updatedConnections: Connection[] }> => {
     setIsProcessing(true);
 
-    const targetEvidence = evidence.find(e => e.id === evidenceId);
+    // Check ref first to eliminate any render closure race condition
+    const targetEvidence = evidenceRef.current.find(e => e.id === evidenceId) || evidence.find(e => e.id === evidenceId);
     if (!targetEvidence) {
       setIsProcessing(false);
       throw new Error(`Evidence ${evidenceId} not found`);
     }
 
     // Mark evidence as processing
-    setEvidence(prev => prev.map(e => e.id === evidenceId ? { ...e, processing_status: 'PROCESSING' } : e));
+    const processingEvidenceList = evidenceRef.current.map(e => e.id === evidenceId ? { ...e, processing_status: 'PROCESSING' as const } : e);
+    evidenceRef.current = processingEvidenceList;
+    setEvidence(processingEvidenceList);
 
     // Simulated short processing step
-    await new Promise(res => setTimeout(res, 400));
+    await new Promise(res => setTimeout(res, 350));
 
     try {
       // 1. Extract and normalize entities
@@ -268,12 +289,13 @@ export const TraceProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       );
 
       // Merge entities (avoid duplicates from this evidence)
-      const otherEntities = entities.filter(e => e.source_evidence_id !== evidenceId);
+      const otherEntities = entitiesRef.current.filter(e => e.source_evidence_id !== evidenceId);
       const combinedEntities = [...otherEntities, ...newExtracted];
+      entitiesRef.current = combinedEntities;
       setEntities(combinedEntities);
 
       // 2. Update evidence item status
-      const updatedEvidenceList = evidence.map(e => {
+      const updatedEvidenceList = evidenceRef.current.map(e => {
         if (e.id === evidenceId) {
           return {
             ...e,
@@ -283,16 +305,20 @@ export const TraceProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         }
         return e;
       });
+      evidenceRef.current = updatedEvidenceList;
       setEvidence(updatedEvidenceList);
 
       // 3. Cross-case matching against all other cases
+      const currentCases = casesRef.current;
+      const currentConnections = connectionsRef.current;
       const updatedConnections = matchCaseAgainstAll(
         targetEvidence.case_id,
-        cases,
+        currentCases,
         combinedEntities,
         updatedEvidenceList,
-        connections
+        currentConnections
       );
+      connectionsRef.current = updatedConnections;
       setConnections(updatedConnections);
 
       // 4. Record timeline events
@@ -311,7 +337,7 @@ export const TraceProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       // If new connections detected
       const newLinks = updatedConnections.filter(c => 
         (c.case_a === targetEvidence.case_id || c.case_b === targetEvidence.case_id) &&
-        !connections.some(oc => oc.id === c.id)
+        !currentConnections.some(oc => oc.id === c.id)
       );
 
       if (newLinks.length > 0) {
@@ -340,7 +366,8 @@ export const TraceProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         });
       }
 
-      setTimeline(prev => [...newEvents, ...prev]);
+      timelineRef.current = [...newEvents, ...timelineRef.current];
+      setTimeline(timelineRef.current);
       setIsProcessing(false);
 
       return {
@@ -348,7 +375,9 @@ export const TraceProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         updatedConnections,
       };
     } catch (err: any) {
-      setEvidence(prev => prev.map(e => e.id === evidenceId ? { ...e, processing_status: 'FAILED', processing_error: err.message } : e));
+      const errorList = evidenceRef.current.map(e => e.id === evidenceId ? { ...e, processing_status: 'FAILED' as const, processing_error: err.message } : e);
+      evidenceRef.current = errorList;
+      setEvidence(errorList);
       setIsProcessing(false);
       throw err;
     }
@@ -358,33 +387,36 @@ export const TraceProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const now = new Date().toISOString();
     let verifiedConn: Connection | undefined;
 
-    setConnections(prev => prev.map(c => {
+    const updated = connectionsRef.current.map(c => {
       if (c.id === connectionId) {
         verifiedConn = {
           ...c,
-          status: 'VERIFIED',
+          status: 'VERIFIED' as const,
           verified_at: now,
           investigator_notes: notes || c.investigator_notes || 'Verified by Investigator after indicator corroboration.',
         };
         return verifiedConn;
       }
       return c;
-    }));
+    });
+    connectionsRef.current = updated;
+    setConnections(updated);
 
     if (verifiedConn) {
       const vEvent: TimelineEvent = {
         id: `tl-${Date.now()}`,
-        case_id: verifiedConn.case_a,
+        case_id: (verifiedConn as Connection).case_a,
         event_type: 'CONNECTION_VERIFIED',
         event_time: now,
-        description: `Investigator verified connection: ${verifiedConn.case_a} ↔ ${verifiedConn.case_b}`,
+        description: `Investigator verified connection: ${(verifiedConn as Connection).case_a} ↔ ${(verifiedConn as Connection).case_b}`,
         actor: 'Investigator',
       };
-      setTimeline(prev => [vEvent, ...prev]);
+      timelineRef.current = [vEvent, ...timelineRef.current];
+      setTimeline(timelineRef.current);
 
       setActiveNotification({
         title: 'Connection Verified',
-        message: `Relationship between ${verifiedConn.case_a} and ${verifiedConn.case_b} is now marked VERIFIED.`,
+        message: `Relationship between ${(verifiedConn as Connection).case_a} and ${(verifiedConn as Connection).case_b} is now marked VERIFIED.`,
         type: 'success',
       });
     }
@@ -394,33 +426,36 @@ export const TraceProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const now = new Date().toISOString();
     let dismissedConn: Connection | undefined;
 
-    setConnections(prev => prev.map(c => {
+    const updated = connectionsRef.current.map(c => {
       if (c.id === connectionId) {
         dismissedConn = {
           ...c,
-          status: 'DISMISSED',
+          status: 'DISMISSED' as const,
           dismissed_at: now,
           dismissal_reason: reason || 'Dismissed by Investigator upon review.',
         };
         return dismissedConn;
       }
       return c;
-    }));
+    });
+    connectionsRef.current = updated;
+    setConnections(updated);
 
     if (dismissedConn) {
       const dEvent: TimelineEvent = {
         id: `tl-${Date.now()}`,
-        case_id: dismissedConn.case_a,
+        case_id: (dismissedConn as Connection).case_a,
         event_type: 'CONNECTION_DISMISSED',
         event_time: now,
-        description: `Investigator dismissed connection: ${dismissedConn.case_a} ↔ ${dismissedConn.case_b} (${reason || 'No correlation'})`,
+        description: `Investigator dismissed connection: ${(dismissedConn as Connection).case_a} ↔ ${(dismissedConn as Connection).case_b} (${reason || 'No correlation'})`,
         actor: 'Investigator',
       };
-      setTimeline(prev => [dEvent, ...prev]);
+      timelineRef.current = [dEvent, ...timelineRef.current];
+      setTimeline(timelineRef.current);
 
       setActiveNotification({
         title: 'Connection Dismissed',
-        message: `Relationship between ${dismissedConn.case_a} and ${dismissedConn.case_b} moved to DISMISSED.`,
+        message: `Relationship between ${(dismissedConn as Connection).case_a} and ${(dismissedConn as Connection).case_b} moved to DISMISSED.`,
         type: 'info',
       });
     }
@@ -430,11 +465,12 @@ export const TraceProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setIsProcessing(true);
 
     // 1. Check if CASE-008 exists, if not create it
-    let targetCase = cases.find(c => c.case_number === 'CASE-008');
+    let targetCase = casesRef.current.find(c => c.case_number === 'CASE-008');
     if (!targetCase) {
       const seedCase = buildInitialSeedState().cases.find(c => c.case_number === 'CASE-008');
       if (seedCase) {
-        setCases(prev => [seedCase, ...prev]);
+        casesRef.current = [seedCase, ...casesRef.current];
+        setCases(casesRef.current);
         targetCase = seedCase;
       }
     }
@@ -464,10 +500,15 @@ export const TraceProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const resetToSeedData = () => {
     const seed = buildInitialSeedState();
+    casesRef.current = seed.cases;
     setCases(seed.cases);
+    evidenceRef.current = seed.evidence;
     setEvidence(seed.evidence);
+    entitiesRef.current = seed.entities;
     setEntities(seed.entities);
+    connectionsRef.current = seed.connections;
     setConnections(seed.connections);
+    timelineRef.current = seed.timeline;
     setTimeline(seed.timeline);
 
     localStorage.removeItem(`${STORAGE_KEY}_CASES`);
@@ -515,17 +556,21 @@ export const TraceProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         ];
 
       case 'stats': {
-        const highLeads = connections.filter(c => c.severity === 'HIGH' && c.status !== 'DISMISSED').length;
-        const verified = connections.filter(c => c.status === 'VERIFIED').length;
-        const suggested = connections.filter(c => c.status === 'SUGGESTED').length;
+        const curCases = casesRef.current;
+        const curEvidence = evidenceRef.current;
+        const curEntities = entitiesRef.current;
+        const curConnections = connectionsRef.current;
+        const highLeads = curConnections.filter(c => c.severity === 'HIGH' && c.status !== 'DISMISSED').length;
+        const verified = curConnections.filter(c => c.status === 'VERIFIED').length;
+        const suggested = curConnections.filter(c => c.status === 'SUGGESTED').length;
         return [
           '═══════════════════════════════════════════════════════════',
           '  TRACE EVIDENCE INTELLIGENCE PLATFORM — TELEMETRY METRICS',
           '═══════════════════════════════════════════════════════════',
-          `  Active Cases Registered:       ${cases.length}`,
-          `  Total Evidence Files:          ${evidence.length}`,
-          `  Processed Evidence Items:      ${evidence.filter(e => e.processing_status === 'PROCESSED').length}`,
-          `  Extracted Normalized Entities: ${entities.length}`,
+          `  Active Cases Registered:       ${curCases.length}`,
+          `  Total Evidence Files:          ${curEvidence.length}`,
+          `  Processed Evidence Items:      ${curEvidence.filter(e => e.processing_status === 'PROCESSED').length}`,
+          `  Extracted Normalized Entities: ${curEntities.length}`,
           `  Potential Cross-Case Links:    ${suggested} (SUGGESTED)`,
           `  Investigator Verified Links:   ${verified} (VERIFIED)`,
           `  High-Priority Leads (Score≥80): ${highLeads}`,
@@ -539,21 +584,21 @@ export const TraceProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           '-------------------------------------------------------------------------------------',
           'CASE ID    | PRIORITY | STATUS               | CRIME TYPE            | TITLE',
           '-------------------------------------------------------------------------------------',
-          ...cases.map(c => 
+          ...casesRef.current.map(c => 
             `${c.case_number.padEnd(10)} | ${c.priority.padEnd(8)} | ${c.status.padEnd(20)} | ${c.crime_type.padEnd(21)} | ${c.title}`
           ),
           '-------------------------------------------------------------------------------------',
-          `Total: ${cases.length} cases`,
+          `Total: ${casesRef.current.length} cases`,
         ];
 
       case 'case': {
         if (!arg1) return ['Usage: case <CASE_ID> (e.g. case CASE-001)'];
-        const target = cases.find(c => c.case_number.toLowerCase() === arg1.toLowerCase() || c.id.toLowerCase() === arg1.toLowerCase());
+        const target = casesRef.current.find(c => c.case_number.toLowerCase() === arg1.toLowerCase() || c.id.toLowerCase() === arg1.toLowerCase());
         if (!target) return [`Error: Case "${arg1}" not found in database.`];
 
-        const caseEv = evidence.filter(e => e.case_id === target.case_number || e.case_id === target.id);
-        const caseEnt = entities.filter(e => e.source_case_id === target.case_number || e.source_case_id === target.id);
-        const caseConn = connections.filter(c => c.case_a === target.case_number || c.case_b === target.case_number);
+        const caseEv = evidenceRef.current.filter(e => e.case_id === target.case_number || e.case_id === target.id);
+        const caseEnt = entitiesRef.current.filter(e => e.source_case_id === target.case_number || e.source_case_id === target.id);
+        const caseConn = connectionsRef.current.filter(c => c.case_a === target.case_number || c.case_b === target.case_number);
 
         return [
           `CASE SUMMARY: ${target.case_number}`,
@@ -595,9 +640,9 @@ export const TraceProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
       case 'entities': {
         if (!arg1) return ['Usage: entities <CASE_ID> (e.g. entities CASE-001)'];
-        const target = cases.find(c => c.case_number.toLowerCase() === arg1.toLowerCase() || c.id.toLowerCase() === arg1.toLowerCase());
+        const target = casesRef.current.find(c => c.case_number.toLowerCase() === arg1.toLowerCase() || c.id.toLowerCase() === arg1.toLowerCase());
         const caseNumber = target ? target.case_number : arg1.toUpperCase();
-        const entList = entities.filter(e => e.source_case_id === caseNumber);
+        const entList = entitiesRef.current.filter(e => e.source_case_id === caseNumber);
 
         if (entList.length === 0) return [`No entities extracted yet for ${caseNumber}. Run process evidence if pending.`];
 
@@ -607,7 +652,7 @@ export const TraceProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           'TYPE         | VALUE                     | NORMALIZED VALUE          | SOURCE EVIDENCE',
           '-------------------------------------------------------------------------------------------------',
           ...entList.map(e => {
-            const ev = evidence.find(ev => ev.id === e.source_evidence_id);
+            const ev = evidenceRef.current.find(ev => ev.id === e.source_evidence_id);
             const evName = ev ? ev.file_name : e.source_evidence_id;
             return `${e.type.padEnd(12)} | ${e.value.padEnd(25).slice(0, 25)} | ${e.normalized_value.padEnd(25).slice(0, 25)} | ${evName}`;
           }),
@@ -616,10 +661,10 @@ export const TraceProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       }
 
       case 'connections': {
-        let connList = connections;
+        let connList = connectionsRef.current;
         if (arg1) {
           const targetNum = arg1.toUpperCase();
-          connList = connections.filter(c => c.case_a === targetNum || c.case_b === targetNum);
+          connList = connectionsRef.current.filter(c => c.case_a === targetNum || c.case_b === targetNum);
         }
 
         if (connList.length === 0) return ['No cross-case connections found for query.'];
@@ -641,11 +686,11 @@ export const TraceProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         if (!arg1) return ['Usage: search <QUERY> (e.g. search 9000011111 or search securebank.test)'];
         const q = arg1.toLowerCase();
 
-        const matchedEnts = entities.filter(e => 
+        const matchedEnts = entitiesRef.current.filter(e => 
           e.value.toLowerCase().includes(q) || e.normalized_value.toLowerCase().includes(q)
         );
 
-        const matchedCases = cases.filter(c => 
+        const matchedCases = casesRef.current.filter(c => 
           c.case_number.toLowerCase().includes(q) || c.title.toLowerCase().includes(q) || c.description.toLowerCase().includes(q)
         );
 
@@ -688,7 +733,7 @@ export const TraceProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       case 'timeline': {
         if (!arg1) return ['Usage: timeline <CASE_ID> (e.g. timeline CASE-001)'];
         const caseNumber = arg1.toUpperCase();
-        const events = timeline.filter(t => t.case_id === caseNumber);
+        const events = timelineRef.current.filter(t => t.case_id === caseNumber);
 
         if (events.length === 0) return [`No timeline events recorded for ${caseNumber}.`];
 
@@ -704,7 +749,7 @@ export const TraceProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
       case 'process': {
         if (arg1 === 'evidence' && arg2) {
-          const ev = evidence.find(e => e.id.toLowerCase() === arg2.toLowerCase());
+          const ev = evidenceRef.current.find(e => e.id.toLowerCase() === arg2.toLowerCase());
           if (!ev) return [`Error: Evidence ID "${arg2}" not found.`];
           // Trigger async processing in background
           processEvidence(ev.id);
@@ -715,7 +760,7 @@ export const TraceProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
       case 'verify': {
         if (arg1 === 'connection' && arg2) {
-          const conn = connections.find(c => c.id.toLowerCase() === arg2.toLowerCase());
+          const conn = connectionsRef.current.find(c => c.id.toLowerCase() === arg2.toLowerCase());
           if (!conn) return [`Error: Connection ID "${arg2}" not found.`];
           verifyConnection(conn.id, 'Verified via Terminal Command');
           return [`Connection ${conn.id} (${conn.case_a} <-> ${conn.case_b}) successfully VERIFIED.`];
@@ -725,7 +770,7 @@ export const TraceProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
       case 'dismiss': {
         if (arg1 === 'connection' && arg2) {
-          const conn = connections.find(c => c.id.toLowerCase() === arg2.toLowerCase());
+          const conn = connectionsRef.current.find(c => c.id.toLowerCase() === arg2.toLowerCase());
           if (!conn) return [`Error: Connection ID "${arg2}" not found.`];
           dismissConnection(conn.id, 'Dismissed via Terminal Command');
           return [`Connection ${conn.id} (${conn.case_a} <-> ${conn.case_b}) DISMISSED.`];

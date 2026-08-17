@@ -5,11 +5,13 @@ import {
   RotateCcw, 
   Play, 
   AlertTriangle, 
-  Menu,
-  X,
-  Sparkles
+  Menu, 
+  X, 
+  Sparkles,
+  Compass
 } from 'lucide-react';
 import { useTrace } from '../../context/TraceContext';
+import { GuidedDemoModal } from '../demo/GuidedDemoModal';
 
 export const Header: React.FC = () => {
   const { 
@@ -25,6 +27,7 @@ export const Header: React.FC = () => {
   } = useTrace();
 
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
+  const [guidedDemoOpen, setGuidedDemoOpen] = useState(false);
 
   const suggestedCount = connections.filter(c => c.status === 'SUGGESTED').length;
 
@@ -100,16 +103,15 @@ export const Header: React.FC = () => {
           <Search className="w-4 h-4" />
         </button>
 
-        {/* Golden Demo Quick Action */}
+        {/* Start Demo Investigation Primary CTA */}
         <button
-          onClick={() => runGoldenDemo()}
+          onClick={() => setGuidedDemoOpen(true)}
           disabled={isProcessing}
-          className="flex items-center space-x-1.5 sm:space-x-2 px-2.5 sm:px-3 py-1.5 bg-[#81A2A2]/10 hover:bg-[#81A2A2]/20 text-[#81A2A2] border border-[#81A2A2]/50 hover:border-[#81A2A2] rounded text-xs font-semibold tracking-wide transition-all disabled:opacity-50"
-          title="Simulate CASE-008 receiving new evidence and automatically discovering relationships with CASE-001 & CASE-002"
+          className="flex items-center space-x-1.5 sm:space-x-2 px-3 sm:px-3.5 py-1.5 bg-[#81A2A2] hover:bg-[#81A2A2]/90 text-[#060606] font-bold text-xs rounded transition-all shadow-md shadow-[#81A2A2]/20 disabled:opacity-50"
+          title="Open interactive step-by-step guided demo of the TRACE cross-case investigation engine"
         >
-          <Play className="w-3.5 h-3.5 fill-current shrink-0" />
-          <span className="hidden sm:inline">Run Golden Demo (CASE-008)</span>
-          <span className="sm:hidden text-[11px]">Demo</span>
+          <Compass className="w-3.5 h-3.5 shrink-0" />
+          <span>Start Demo Investigation</span>
         </button>
 
         {/* High Risk Leads Pill */}
@@ -136,6 +138,12 @@ export const Header: React.FC = () => {
           <RotateCcw className="w-4 h-4" />
         </button>
       </div>
+
+      {/* Guided Demo Modal */}
+      <GuidedDemoModal
+        isOpen={guidedDemoOpen}
+        onClose={() => setGuidedDemoOpen(false)}
+      />
 
       {/* Mobile Search Dropdown Bar */}
       {mobileSearchOpen && (
@@ -164,3 +172,4 @@ export const Header: React.FC = () => {
     </header>
   );
 };
+

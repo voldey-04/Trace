@@ -524,7 +524,7 @@ export const InvestigationGraph: React.FC<Props> = ({ focusedCaseId }) => {
           <circle cx="550" cy="375" r="230" fill="none" stroke="#242B30" strokeWidth="1" strokeDasharray="4 4" opacity="0.3" />
 
           {/* Graph Content Group with Pan and Zoom */}
-          <g transform={`translate(${pan.x}, ${pan.y}) scale(${zoom})`} transform-origin="550 375">
+          <g transform={`translate(${pan.x}, ${pan.y}) scale(${zoom})`} style={{ transformOrigin: '550px 375px' }}>
             {/* Edges Rendering */}
             {edges.map((edge) => {
               const sourceNode = nodes.find(n => n.id === edge.source);

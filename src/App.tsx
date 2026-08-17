@@ -34,7 +34,7 @@ const MainContent: React.FC = () => {
 export default function App() {
   return (
     <TraceProvider>
-      <div className="flex h-screen bg-[#060606] text-[#F2F2F2] flex-col overflow-hidden select-none font-sans">
+      <div className="flex h-screen bg-[#060606] text-[#F2F2F2] flex-col overflow-hidden font-sans">
         <Header />
         <div className="flex flex-1 overflow-hidden relative">
           <Sidebar />

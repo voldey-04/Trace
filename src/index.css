@@ -20,6 +20,35 @@
     color: #F2F2F2;
     font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     overflow-x: hidden;
+    cursor: default;
+  }
+
+  /* Classical Desktop Cursor & Interaction Rules */
+  button, 
+  [role="button"], 
+  a, 
+  select, 
+  summary,
+  input[type="button"], 
+  input[type="submit"], 
+  input[type="reset"], 
+  input[type="checkbox"], 
+  input[type="radio"] {
+    cursor: pointer;
+  }
+
+  button:disabled,
+  [role="button"]:disabled {
+    cursor: not-allowed;
+  }
+
+  input[type="text"],
+  input[type="search"],
+  input[type="email"],
+  input[type="password"],
+  input[type="number"],
+  textarea {
+    cursor: text;
   }
 
   code, pre, .font-mono, [data-mono] {

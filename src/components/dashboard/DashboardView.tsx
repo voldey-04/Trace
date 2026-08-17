@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { 
   FolderArchive, 
   FileText, 
@@ -12,10 +12,13 @@ import {
   ExternalLink,
   Clock,
   Sparkles,
-  Info
+  Info,
+  Compass,
+  ShieldCheck
 } from 'lucide-react';
 import { useTrace } from '../../context/TraceContext';
 import { Connection } from '../../types';
+import { GuidedDemoModal } from '../demo/GuidedDemoModal';
 
 export const DashboardView: React.FC = () => {
   const { 
@@ -32,6 +35,8 @@ export const DashboardView: React.FC = () => {
     dismissConnection,
     isProcessing
   } = useTrace();
+
+  const [guidedDemoOpen, setGuidedDemoOpen] = useState(false);
 
   const processedEvidenceCount = evidence.filter(e => e.processing_status === 'PROCESSED').length;
   const suggestedConnections = connections.filter(c => c.status === 'SUGGESTED');
@@ -64,14 +69,24 @@ export const DashboardView: React.FC = () => {
             </p>
           </div>
 
-          <div className="flex items-center space-x-3 shrink-0">
+          <div className="flex flex-wrap items-center gap-2.5 shrink-0">
+            <button
+              onClick={() => setGuidedDemoOpen(true)}
+              disabled={isProcessing}
+              className="flex items-center space-x-2 px-4 py-2.5 bg-[#81A2A2] hover:bg-[#81A2A2]/90 text-[#060606] font-bold text-xs rounded transition-all shadow-md shadow-[#81A2A2]/20 disabled:opacity-50"
+            >
+              <Compass className="w-4 h-4 shrink-0" />
+              <span>Guided Investigation Demo</span>
+            </button>
+
             <button
               onClick={() => runGoldenDemo()}
               disabled={isProcessing}
-              className="flex items-center space-x-2 px-4 py-2.5 bg-[#81A2A2] hover:bg-[#81A2A2]/90 text-[#060606] font-semibold text-xs rounded transition-all shadow-md shadow-[#81A2A2]/10 disabled:opacity-50"
+              className="flex items-center space-x-2 px-3.5 py-2.5 bg-[#121619] hover:bg-[#242B30] text-[#81A2A2] border border-[#81A2A2]/50 hover:border-[#81A2A2] font-semibold text-xs rounded transition-all disabled:opacity-50"
+              title="Fast-forward simulate CASE-008 receiving new evidence"
             >
-              <Play className="w-4 h-4 fill-current" />
-              <span>Simulate Golden Scenario (CASE-008)</span>
+              <Play className="w-3.5 h-3.5 fill-current" />
+              <span>Simulate CASE-008</span>
             </button>
           </div>
         </div>
@@ -343,6 +358,12 @@ export const DashboardView: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Guided Demo Modal */}
+      <GuidedDemoModal
+        isOpen={guidedDemoOpen}
+        onClose={() => setGuidedDemoOpen(false)}
+      />
     </div>
   );
 };

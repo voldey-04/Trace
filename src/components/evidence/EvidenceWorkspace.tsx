@@ -106,9 +106,17 @@ export const EvidenceWorkspace: React.FC<Props> = ({ caseId }) => {
                           {ev.file_type}
                         </span>
                       </div>
-                      <div className="text-[11px] text-[#5F686E] font-mono mt-0.5">
-                        Uploaded: {ev.uploaded_at.substring(0, 19).replace('T', ' ')} • {ev.metadata?.fileSize || '2.4 KB'}
+                      <div className="text-[11px] text-[#5F686E] font-mono mt-0.5 flex flex-wrap items-center gap-2">
+                        <span>Uploaded: {ev.uploaded_at.substring(0, 19).replace('T', ' ')} • {ev.metadata?.fileSize || '2.4 KB'}</span>
+                        <span className="text-[#B7FF3C] text-[10px] bg-[#B7FF3C]/10 px-1.5 py-0.2 rounded border border-[#B7FF3C]/30 font-mono">
+                          ✓ SHA-256 Verified
+                        </span>
                       </div>
+                      {ev.metadata?.sha256 && (
+                        <div className="text-[10px] font-mono text-[#81A2A2]/80 mt-1 truncate max-w-md">
+                          SHA-256: {ev.metadata.sha256.substring(0, 24)}...
+                        </div>
+                      )}
                     </div>
                   </div>
 

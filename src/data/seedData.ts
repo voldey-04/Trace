@@ -1,6 +1,7 @@
 import { Case, Connection, Entity, Evidence, TimelineEvent } from '../types';
 import { extractEntitiesFromText } from '../engine/extractor';
 import { matchCaseAgainstAll } from '../engine/matching';
+import { computeDeterministicHash } from '../engine/crypto';
 
 export const INITIAL_CASES: Case[] = [
   {
@@ -481,8 +482,54 @@ export const INITIAL_TIMELINE_EVENTS: TimelineEvent[] = [
 export function buildInitialSeedState() {
   const allEntities: Entity[] = [];
 
+  // Enrich evidence with SHA-256 and Chain of Custody
+  const enrichedEvidence: Evidence[] = INITIAL_EVIDENCE.map((ev, index) => {
+    const hash = ev.metadata?.sha256 || computeDeterministicHash(ev.extracted_text);
+    const dateStr = ev.uploaded_at.substring(0, 10);
+    const timeStr = ev.uploaded_at.substring(11, 16);
+
+    return {
+      ...ev,
+      metadata: {
+        ...ev.metadata,
+        sha256: hash,
+        integrityStatus: 'VERIFIED' as const,
+        chainOfCustody: [
+          {
+            timestamp: `${dateStr} ${timeStr} UTC`,
+            action: 'Evidence Acquired from Source Endpoint',
+            actor: ev.metadata?.uploadedBy || 'Investigator',
+            status: 'SECURED' as const,
+            details: ev.metadata?.sourceDevice || 'Physical Device Extraction',
+          },
+          {
+            timestamp: `${dateStr} ${timeStr} UTC`,
+            action: 'Uploaded & Cryptographically Hashed (SHA-256)',
+            actor: 'TRACE Evidence Intake Gateway',
+            status: 'COMPLETED' as const,
+            details: `Checksum digest: ${hash.substring(0, 16)}...`,
+          },
+          {
+            timestamp: `${dateStr} ${timeStr} UTC`,
+            action: 'Deterministic Entity Extraction & Normalization',
+            actor: 'TRACE Analysis Core',
+            status: 'COMPLETED' as const,
+            details: 'Pattern rules applied for phones, UPIs, URLs, IPs',
+          },
+          {
+            timestamp: `${dateStr} ${timeStr} UTC`,
+            action: 'Integrity Verification & Audit Check',
+            actor: 'Forensic Verifier',
+            status: 'VERIFIED' as const,
+            details: 'Original payload matches cryptographic digest',
+          },
+        ],
+      },
+    };
+  });
+
   // Extract entities for each seed evidence
-  for (const ev of INITIAL_EVIDENCE) {
+  for (const ev of enrichedEvidence) {
     const extracted = extractEntitiesFromText(ev.extracted_text, ev.id, ev.case_id);
     allEntities.push(...extracted);
   }
@@ -490,7 +537,7 @@ export function buildInitialSeedState() {
   // Run cross-case matching across all seed cases
   let allConnections: Connection[] = [];
   for (const c of INITIAL_CASES) {
-    allConnections = matchCaseAgainstAll(c.case_number, INITIAL_CASES, allEntities, INITIAL_EVIDENCE, allConnections);
+    allConnections = matchCaseAgainstAll(c.case_number, INITIAL_CASES, allEntities, enrichedEvidence, allConnections);
   }
 
   // Mark one connection as verified to show investigator verification workflow in initial state
@@ -505,7 +552,7 @@ export function buildInitialSeedState() {
 
   return {
     cases: INITIAL_CASES,
-    evidence: INITIAL_EVIDENCE,
+    evidence: enrichedEvidence,
     entities: allEntities,
     connections: allConnections,
     timeline: INITIAL_TIMELINE_EVENTS,

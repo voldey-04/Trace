@@ -22,6 +22,7 @@ import { CaseEntitiesTab } from './CaseEntitiesTab';
 import { CaseConnectionsTab } from './CaseConnectionsTab';
 import { InvestigationGraph } from '../graph/InvestigationGraph';
 import { AddEvidenceModal } from '../evidence/AddEvidenceModal';
+import { ActionableCaseSummary } from '../summary/ActionableCaseSummary';
 
 interface Props {
   caseNumber: string;
@@ -207,6 +208,21 @@ export const CaseDetailView: React.FC<Props> = ({ caseNumber }) => {
                 </div>
               )}
             </div>
+
+            {/* Actionable Intelligence Summary Card */}
+            <ActionableCaseSummary
+              caseObj={currentCase}
+              evidence={caseEvidence}
+              entities={caseEntities}
+              connections={caseConnections}
+              onOpenTab={(tab) => {
+                if (tab === 'graph') {
+                  setActiveTab('graph');
+                } else {
+                  setActiveTab(tab);
+                }
+              }}
+            />
 
             {/* Quick Metrics */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
