@@ -1,4 +1,5 @@
 import React from 'react';
+import { Analytics } from '@vercel/analytics/react';
 import { TraceProvider, useTrace } from './context/TraceContext';
 import { Header } from './components/layout/Header';
 import { Sidebar } from './components/layout/Sidebar';
@@ -42,6 +43,7 @@ export default function App() {
         </div>
         <MobileBottomNav />
       </div>
+      <Analytics />
     </TraceProvider>
   );
 }
