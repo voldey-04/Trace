@@ -1,6 +1,6 @@
 Sure bro. Here is the complete **`README.md`** content in a single clean Markdown block, so you can copy it directly into your repository:
 
-````markdown
+
 # TRACE
 
 ## Evidence Intelligence & Cross-Case Investigation Platform
@@ -27,7 +27,7 @@ The live prototype operates using synthetic investigation data.
 
 No real personal, financial, banking, or law-enforcement data is used.
 
----
+
 
 # 1. Problem Statement
 
