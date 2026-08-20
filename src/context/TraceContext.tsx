@@ -524,10 +524,21 @@ export const TraceProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     });
   };
 
-  // Real database-connected terminal command evaluator
+  // Real database-connected terminal command evaluator with input validation
   const executeTerminalCommand = (commandLine: string): string[] => {
+    if (!commandLine || typeof commandLine !== 'string') return [];
     const trimmed = commandLine.trim();
     if (!trimmed) return [];
+
+    // Security guard: Cap terminal input length to prevent memory/UI lockups
+    if (trimmed.length > 500) {
+      return ['Error: Terminal command exceeds maximum allowed length of 500 characters.'];
+    }
+
+    // Security guard: Reject null bytes and illegal control characters
+    if (/[\x00-\x1F\x7F]/.test(trimmed)) {
+      return ['Error: Command contains prohibited control characters.'];
+    }
 
     const parts = trimmed.split(/\s+/);
     const cmd = parts[0].toLowerCase();

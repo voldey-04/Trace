@@ -49,27 +49,60 @@ export const AddEvidenceModal: React.FC<Props> = ({ isOpen, onClose, caseId }) =
   const [autoProcess, setAutoProcess] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
   if (!isOpen) return null;
 
+  const sanitizeFilename = (rawName: string): string => {
+    // Strip path traversal tokens, null bytes, and special control characters
+    const clean = rawName
+      .replace(/[\/\\]/g, '_')
+      .replace(/\.\./g, '')
+      .replace(/[\x00-\x1F\x7F]/g, '')
+      .trim();
+    return clean.slice(0, 100) || 'unnamed_evidence.txt';
+  };
+
   const handleApplyTemplate = (tpl: typeof TEMPLATE_PRESETS[0]) => {
-    setFileName(tpl.fileName);
+    setErrorMessage(null);
+    setFileName(sanitizeFilename(tpl.fileName));
     setFileType(tpl.fileType);
     setText(tpl.text);
   };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setErrorMessage(null);
     const file = e.target.files?.[0];
     if (!file) return;
 
-    setFileName(file.name);
-    const ext = file.name.split('.').pop()?.toUpperCase();
+    // 1. File size check (max 5MB)
+    const MAX_SIZE_BYTES = 5 * 1024 * 1024;
+    if (file.size > MAX_SIZE_BYTES) {
+      setErrorMessage(`File exceeds maximum size limit of 5MB (${(file.size / (1024 * 1024)).toFixed(2)} MB).`);
+      return;
+    }
+
+    const cleanName = sanitizeFilename(file.name);
+    setFileName(cleanName);
+
+    // 2. Extension validation
+    const ext = cleanName.split('.').pop()?.toUpperCase() || '';
+    const allowedExts = ['TXT', 'CSV', 'LOG', 'PDF', 'PNG', 'JPG', 'JPEG'];
+    if (!allowedExts.includes(ext)) {
+      setErrorMessage(`File type ".${ext}" is not supported. Please upload TXT, CSV, LOG, PDF, or PNG.`);
+      return;
+    }
+
     if (ext === 'CSV') setFileType('CSV');
     else if (ext === 'LOG') setFileType('LOG');
     else if (ext === 'PDF') setFileType('PDF');
-    else if (['PNG', 'JPG', 'JPEG'].includes(ext || '')) setFileType('PNG');
+    else if (['PNG', 'JPG', 'JPEG'].includes(ext)) setFileType('PNG');
     else setFileType('TXT');
 
     const reader = new FileReader();
+    reader.onerror = () => {
+      setErrorMessage('Failed to read evidence file content.');
+    };
     reader.onload = (event) => {
       const content = event.target?.result as string;
       setText(content || '');
@@ -79,29 +112,44 @@ export const AddEvidenceModal: React.FC<Props> = ({ isOpen, onClose, caseId }) =
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!fileName.trim() || !text.trim()) return;
+    setErrorMessage(null);
+    const cleanFileName = sanitizeFilename(fileName);
+    if (!cleanFileName || !text.trim()) {
+      setErrorMessage('Please provide both a valid filename and evidence content.');
+      return;
+    }
+
+    if (text.length > 5 * 1024 * 1024) {
+      setErrorMessage('Evidence content exceeds 5MB size limit.');
+      return;
+    }
 
     setIsSubmitting(true);
 
-    const newEv = addEvidence(caseId, {
-      fileName,
-      fileType,
-      text,
-      metadata: {
-        fileSize: `${(text.length / 1024).toFixed(1)} KB`,
-        uploadedBy,
-        victimName: victimName || undefined,
-        sha256: `sha256_${Math.random().toString(36).substring(2, 12)}`,
-        incidentDate: new Date().toISOString().substring(0, 10),
-      },
-    });
+    try {
+      const newEv = addEvidence(caseId, {
+        fileName: cleanFileName,
+        fileType,
+        text,
+        metadata: {
+          fileSize: `${(text.length / 1024).toFixed(1)} KB`,
+          uploadedBy: sanitizeFilename(uploadedBy),
+          victimName: victimName ? sanitizeFilename(victimName) : undefined,
+          sha256: `sha256_${Math.random().toString(36).substring(2, 12)}`,
+          incidentDate: new Date().toISOString().substring(0, 10),
+        },
+      });
 
-    if (autoProcess) {
-      await processEvidence(newEv.id);
+      if (autoProcess) {
+        await processEvidence(newEv.id);
+      }
+
+      setIsSubmitting(false);
+      onClose();
+    } catch (err: any) {
+      setIsSubmitting(false);
+      setErrorMessage(err?.message || 'Failed to ingest evidence artifact.');
     }
-
-    setIsSubmitting(false);
-    onClose();
   };
 
   return (
@@ -125,6 +173,19 @@ export const AddEvidenceModal: React.FC<Props> = ({ isOpen, onClose, caseId }) =
             </p>
           </div>
         </div>
+
+        {errorMessage && (
+          <div className="mb-4 p-3 bg-[#FF4D4D]/10 border border-[#FF4D4D]/30 rounded text-xs text-[#FF4D4D] font-mono flex items-center justify-between">
+            <span>{errorMessage}</span>
+            <button
+              type="button"
+              onClick={() => setErrorMessage(null)}
+              className="text-[#FF4D4D] hover:text-[#F2F2F2] ml-2 text-sm"
+            >
+              ✕
+            </button>
+          </div>
+        )}
 
         {/* Quick Demo Template Presets */}
         <div className="mb-4 p-3 bg-[#060606] rounded border border-[#242B30] space-y-2">

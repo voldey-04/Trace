@@ -58,8 +58,15 @@ export const InvestigationGraph: React.FC<Props> = ({ focusedCaseId }) => {
   const [filterType, setFilterType] = useState<string>('ALL');
   const [sharedOnly, setSharedOnly] = useState<boolean>(false);
   const [searchTerm, setSearchTerm] = useState<string>('');
+  const [isSearchDropdownOpen, setIsSearchDropdownOpen] = useState(false);
 
   const svgRef = useRef<SVGSVGElement | null>(null);
+
+  // Direct navigation to case inspection / provenance workspace
+  const handleOpenCase = useCallback((caseNumber: string) => {
+    setSelectedCaseId(caseNumber);
+    setActiveView('case-detail', caseNumber);
+  }, [setSelectedCaseId, setActiveView]);
 
   // Helper color map for entity types
   const getEntityColor = (type?: EntityType) => {
@@ -398,23 +405,181 @@ export const InvestigationGraph: React.FC<Props> = ({ focusedCaseId }) => {
             {nodes.length} nodes • {edges.length} links
           </span>
 
-          {/* Quick Search */}
+          {/* Quick Search with Submit & Result Dropdown */}
           <div className="relative">
-            <Search className="w-3.5 h-3.5 text-[#5F686E] absolute left-2.5 top-1/2 -translate-y-1/2" />
-            <input
-              type="text"
-              placeholder="Find node / indicator..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="bg-[#060606] border border-[#242B30] focus:border-[#81A2A2] rounded pl-8 pr-2.5 py-1 text-xs text-[#F2F2F2] outline-none font-mono w-44"
-            />
-            {searchTerm && (
+            <div className="flex items-center space-x-1">
+              <div className="relative">
+                <Search className="w-3.5 h-3.5 text-[#5F686E] absolute left-2.5 top-1/2 -translate-y-1/2" />
+                <input
+                  id="find-node-input"
+                  data-testid="find-node-input"
+                  type="text"
+                  placeholder="Find case (e.g. CASE-001) / indicator..."
+                  value={searchTerm}
+                  onFocus={() => setIsSearchDropdownOpen(true)}
+                  onChange={(e) => {
+                    setSearchTerm(e.target.value);
+                    setIsSearchDropdownOpen(true);
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      const term = searchTerm.trim().toLowerCase();
+                      if (!term) return;
+                      // Find best case match
+                      const matchedCase = cases.find(
+                        c => c.case_number.toLowerCase() === term ||
+                             c.case_number.toLowerCase().includes(term) ||
+                             c.title.toLowerCase().includes(term)
+                      );
+                      if (matchedCase) {
+                        handleOpenCase(matchedCase.case_number);
+                        setIsSearchDropdownOpen(false);
+                        return;
+                      }
+                      // Find entity or case node
+                      const matchedNode = nodes.find(
+                        n => n.label.toLowerCase().includes(term) ||
+                             (n.subLabel && n.subLabel.toLowerCase().includes(term))
+                      );
+                      if (matchedNode) {
+                        if (matchedNode.type === 'CASE') {
+                          handleOpenCase((matchedNode.data as Case).case_number);
+                        } else {
+                          const linked = matchedNode.data?.linkedCases;
+                          if (linked && linked.length > 0) {
+                            handleOpenCase(linked[0]);
+                          } else {
+                            setSelectedNode(matchedNode);
+                          }
+                        }
+                        setIsSearchDropdownOpen(false);
+                      }
+                    }
+                  }}
+                  className="bg-[#060606] border border-[#242B30] focus:border-[#81A2A2] rounded pl-8 pr-7 py-1 text-xs text-[#F2F2F2] outline-none font-mono w-48 sm:w-56"
+                />
+                {searchTerm && (
+                  <button
+                    onClick={() => {
+                      setSearchTerm('');
+                      setIsSearchDropdownOpen(false);
+                    }}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-[#5F686E] hover:text-[#F2F2F2]"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                )}
+              </div>
+
               <button
-                onClick={() => setSearchTerm('')}
-                className="absolute right-2 top-1/2 -translate-y-1/2 text-[#5F686E] hover:text-[#F2F2F2]"
+                id="find-node-btn"
+                data-testid="find-node-btn"
+                onClick={() => {
+                  const term = searchTerm.trim().toLowerCase();
+                  if (!term) return;
+                  const matchedCase = cases.find(
+                    c => c.case_number.toLowerCase() === term ||
+                         c.case_number.toLowerCase().includes(term) ||
+                         c.title.toLowerCase().includes(term)
+                  );
+                  if (matchedCase) {
+                    handleOpenCase(matchedCase.case_number);
+                    setIsSearchDropdownOpen(false);
+                  } else {
+                    const matchedNode = nodes.find(
+                      n => n.label.toLowerCase().includes(term) ||
+                           (n.subLabel && n.subLabel.toLowerCase().includes(term))
+                    );
+                    if (matchedNode) {
+                      if (matchedNode.type === 'CASE') {
+                        handleOpenCase((matchedNode.data as Case).case_number);
+                      } else {
+                        const linked = matchedNode.data?.linkedCases;
+                        if (linked && linked.length > 0) {
+                          handleOpenCase(linked[0]);
+                        } else {
+                          setSelectedNode(matchedNode);
+                        }
+                      }
+                      setIsSearchDropdownOpen(false);
+                    }
+                  }
+                }}
+                className="px-2.5 py-1 bg-[#81A2A2] hover:bg-[#81A2A2]/90 text-[#060606] font-bold text-xs rounded transition-colors"
               >
-                <X className="w-3 h-3" />
+                Find
               </button>
+            </div>
+
+            {/* Live Search Results Dropdown */}
+            {isSearchDropdownOpen && searchTerm.trim().length > 0 && (
+              <div className="absolute left-0 top-full mt-1.5 w-72 sm:w-80 bg-[#121619] border border-[#454F56] rounded-lg shadow-2xl p-2 z-50 max-h-64 overflow-y-auto space-y-1">
+                <div className="text-[10px] font-mono uppercase text-[#8A9399] px-2 py-1 flex items-center justify-between">
+                  <span>Search Matches</span>
+                  <button
+                    onClick={() => setIsSearchDropdownOpen(false)}
+                    className="text-[#5F686E] hover:text-[#F2F2F2]"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </div>
+
+                {/* Matched Cases */}
+                {cases
+                  .filter(
+                    c =>
+                      c.case_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                      c.title.toLowerCase().includes(searchTerm.toLowerCase())
+                  )
+                  .map(c => (
+                    <button
+                      key={c.id}
+                      id={`search-result-${c.case_number}`}
+                      data-testid={`search-result-${c.case_number}`}
+                      onClick={() => {
+                        handleOpenCase(c.case_number);
+                        setIsSearchDropdownOpen(false);
+                      }}
+                      className="w-full text-left p-2 rounded bg-[#060606] hover:bg-[#242B30] border border-[#242B30] hover:border-[#81A2A2] transition-colors flex items-center justify-between group"
+                    >
+                      <div>
+                        <div className="flex items-center space-x-1.5">
+                          <span className="font-mono text-xs font-bold text-[#81A2A2]">{c.case_number}</span>
+                          <span className="text-[10px] font-mono text-[#5F686E]">• {c.crime_type}</span>
+                        </div>
+                        <div className="text-[11px] text-[#F2F2F2] truncate max-w-[200px] mt-0.5">{c.title}</div>
+                      </div>
+                      <span className="text-[10px] font-mono text-[#81A2A2] group-hover:underline shrink-0">Open Case →</span>
+                    </button>
+                  ))}
+
+                {/* Matched Entities */}
+                {entities
+                  .filter(
+                    e =>
+                      e.value.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                      e.normalized_value.toLowerCase().includes(searchTerm.toLowerCase())
+                  )
+                  .slice(0, 4)
+                  .map(e => (
+                    <button
+                      key={e.id}
+                      id={`search-result-ent-${e.id}`}
+                      onClick={() => {
+                        handleOpenCase(e.source_case_id);
+                        setIsSearchDropdownOpen(false);
+                      }}
+                      className="w-full text-left p-2 rounded bg-[#060606] hover:bg-[#242B30] border border-[#242B30] transition-colors flex items-center justify-between"
+                    >
+                      <div>
+                        <span className="text-[10px] font-mono text-[#F5C451]">{e.type}: </span>
+                        <span className="text-[11px] font-mono text-[#F2F2F2]">{e.value}</span>
+                      </div>
+                      <span className="text-[10px] font-mono text-[#81A2A2]">View in {e.source_case_id} →</span>
+                    </button>
+                  ))}
+              </div>
             )}
           </div>
         </div>
@@ -600,18 +765,43 @@ export const InvestigationGraph: React.FC<Props> = ({ focusedCaseId }) => {
                 return (
                   <g
                     key={node.id}
+                    id={`node-case-${c.case_number}`}
+                    data-testid={`case-node-${c.case_number}`}
+                    data-case-id={c.case_number}
+                    data-case-number={c.case_number}
+                    role="button"
+                    tabIndex={0}
+                    aria-label={`Open case ${c.case_number}: ${c.title}`}
                     transform={`translate(${node.x}, ${node.y})`}
+                    onMouseDown={(e) => {
+                      e.stopPropagation();
+                    }}
+                    onTouchStart={(e) => {
+                      e.stopPropagation();
+                    }}
                     onClick={(e) => {
                       e.stopPropagation();
-                      setSelectedNode(node);
+                      handleOpenCase(c.case_number);
+                    }}
+                    onDoubleClick={(e) => {
+                      e.stopPropagation();
+                      handleOpenCase(c.case_number);
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        handleOpenCase(c.case_number);
+                      }
                     }}
                     onMouseEnter={() => setHoveredNodeId(node.id)}
                     onMouseLeave={() => setHoveredNodeId(null)}
-                    className="cursor-pointer group"
+                    className="cursor-pointer group outline-none focus:ring-2 focus:ring-[#81A2A2]"
                     opacity={opacity}
                   >
                     {/* Case Node Card Rect */}
                     <rect
+                      id={`rect-case-${c.case_number}`}
+                      data-testid={`rect-case-${c.case_number}`}
                       x="-64"
                       y="-26"
                       width="128"
@@ -626,7 +816,11 @@ export const InvestigationGraph: React.FC<Props> = ({ focusedCaseId }) => {
                       }
                       strokeWidth={isSelected || isHovered || isCurrent || isSearched ? 2.5 : 1.2}
                       filter={isSelected || isHovered || isSearched ? 'url(#glow-highlight)' : undefined}
-                      className="transition-all duration-150"
+                      className="transition-all duration-150 cursor-pointer pointer-events-auto"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleOpenCase(c.case_number);
+                      }}
                     />
 
                     {/* Priority Accent Dot */}
@@ -638,10 +832,17 @@ export const InvestigationGraph: React.FC<Props> = ({ focusedCaseId }) => {
                         c.priority === 'CRITICAL' ? '#FF4D4D' :
                         c.priority === 'HIGH' ? '#F5C451' : '#81A2A2'
                       }
+                      className="cursor-pointer pointer-events-auto"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleOpenCase(c.case_number);
+                      }}
                     />
 
                     {/* Case Number */}
                     <text
+                      id={`text-case-num-${c.case_number}`}
+                      data-testid={`text-case-${c.case_number}`}
                       x="0"
                       y="-7"
                       textAnchor="middle"
@@ -649,6 +850,11 @@ export const InvestigationGraph: React.FC<Props> = ({ focusedCaseId }) => {
                       fontSize="12"
                       fontFamily="JetBrains Mono, monospace"
                       fontWeight="bold"
+                      className="cursor-pointer pointer-events-auto select-none"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleOpenCase(c.case_number);
+                      }}
                     >
                       {c.case_number}
                     </text>
@@ -661,6 +867,11 @@ export const InvestigationGraph: React.FC<Props> = ({ focusedCaseId }) => {
                       fill="#8A9399"
                       fontSize="9.5"
                       fontFamily="sans-serif"
+                      className="cursor-pointer pointer-events-auto select-none"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleOpenCase(c.case_number);
+                      }}
                     >
                       {c.crime_type.length > 15 ? c.crime_type.slice(0, 13) + '..' : c.crime_type}
                     </text>
@@ -676,14 +887,27 @@ export const InvestigationGraph: React.FC<Props> = ({ focusedCaseId }) => {
               return (
                 <g
                   key={node.id}
+                  id={`node-ent-${node.id}`}
+                  data-testid={`entity-node-${node.id}`}
+                  role="button"
+                  tabIndex={0}
+                  aria-label={`Inspect entity ${node.label}`}
                   transform={`translate(${node.x}, ${node.y})`}
+                  onMouseDown={(e) => e.stopPropagation()}
+                  onTouchStart={(e) => e.stopPropagation()}
                   onClick={(e) => {
                     e.stopPropagation();
                     setSelectedNode(node);
                   }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      setSelectedNode(node);
+                    }
+                  }}
                   onMouseEnter={() => setHoveredNodeId(node.id)}
                   onMouseLeave={() => setHoveredNodeId(null)}
-                  className="cursor-pointer group"
+                  className="cursor-pointer group outline-none"
                   opacity={opacity}
                 >
                   {/* Entity Circle Icon Badge */}
@@ -846,11 +1070,10 @@ export const InvestigationGraph: React.FC<Props> = ({ focusedCaseId }) => {
                 </div>
 
                 <button
-                  onClick={() => {
-                    setSelectedCaseId(selectedNode.data.case_number);
-                    setActiveView('case-detail', selectedNode.data.case_number);
-                  }}
-                  className="w-full py-2 bg-[#81A2A2] hover:bg-[#81A2A2]/90 text-[#060606] font-semibold rounded text-xs transition-colors flex items-center justify-center space-x-1.5 shadow-sm"
+                  id={`open-full-case-btn-${selectedNode.data.case_number}`}
+                  data-testid={`open-full-case-btn-${selectedNode.data.case_number}`}
+                  onClick={() => handleOpenCase(selectedNode.data.case_number)}
+                  className="w-full py-2 bg-[#81A2A2] hover:bg-[#81A2A2]/90 text-[#060606] font-semibold rounded text-xs transition-colors flex items-center justify-center space-x-1.5 shadow-sm cursor-pointer"
                 >
                   <span>Open Full Case Workspace</span>
                   <ExternalLink className="w-3.5 h-3.5" />
@@ -894,11 +1117,10 @@ export const InvestigationGraph: React.FC<Props> = ({ focusedCaseId }) => {
                     {(selectedNode.data?.linkedCases || []).map((cNum: string) => (
                       <button
                         key={cNum}
-                        onClick={() => {
-                          setSelectedCaseId(cNum);
-                          setActiveView('case-detail', cNum);
-                        }}
-                        className="px-2.5 py-1 rounded bg-[#121619] hover:bg-[#242B30] text-[#81A2A2] font-mono text-xs border border-[#454F56]/40 hover:border-[#81A2A2] transition-colors"
+                        id={`open-linked-case-${cNum}`}
+                        data-testid={`open-linked-case-${cNum}`}
+                        onClick={() => handleOpenCase(cNum)}
+                        className="px-2.5 py-1 rounded bg-[#121619] hover:bg-[#242B30] text-[#81A2A2] font-mono text-xs border border-[#454F56]/40 hover:border-[#81A2A2] transition-colors cursor-pointer"
                       >
                         {cNum} →
                       </button>

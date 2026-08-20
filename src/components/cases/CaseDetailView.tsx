@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   ArrowLeft, 
   FolderArchive, 
@@ -35,6 +35,10 @@ export const CaseDetailView: React.FC<Props> = ({ caseNumber }) => {
 
   const [activeTab, setActiveTab] = useState<TabType>('overview');
   const [isAddEvidenceOpen, setIsAddEvidenceOpen] = useState(false);
+
+  useEffect(() => {
+    setActiveTab('overview');
+  }, [caseNumber]);
 
   const currentCase = cases.find(c => c.case_number === caseNumber || c.id === caseNumber);
 
