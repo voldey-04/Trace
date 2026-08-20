@@ -1,249 +1,545 @@
-# TRACE
+TRACE
 
-## Evidence Intelligence & Cross-Case Investigation Platform
+Evidence Intelligence & Cross-Case Investigation Platform
 
-> **An explainable intelligence layer for discovering hidden relationships across cybercrime investigations.**
+An explainable intelligence layer for discovering hidden relationships across cybercrime investigations.
 
-TRACE is a specialized evidence intelligence platform designed to assist investigators in identifying cross-case relationships across digital fraud artifacts, cyber scams, mule account networks, and forensic leads.
+TRACE is a cyber investigation assistance platform designed to help investigators identify relationships across otherwise isolated cybercrime cases.
 
-Instead of analyzing every investigation in isolation, TRACE correlates digital indicators across cases and surfaces recurring entities as **explainable investigative leads**.
+The platform extracts and organizes digital indicators such as phone numbers, UPI IDs, bank accounts, domains, IP addresses, and other forensic entities, then correlates them across cases to surface potential investigative leads.
 
----
+TRACE does not replace investigators or make autonomous conclusions. It helps investigators discover connections faster, understand why those connections exist, and verify them using the underlying evidence.
 
-## Live Demo
+Live Demo
 
-**Demo:** https://trace-kappa-indol.vercel.app/
+Live Application:
+https://trace-kappa-indol.vercel.app/
 
-The live prototype uses **synthetic investigation data** for demonstration purposes.
+Source Code:
+https://github.com/voldey-04/Trace
 
-> No real personal, financial, banking, or law-enforcement data is used in the prototype.
+The live prototype operates using synthetic investigation data.
 
----
+No real personal, financial, banking, or law-enforcement data is used.
 
-## 1. The Problem
+1. Problem Statement
 
-Cybercrime investigations frequently operate in **case-by-case silos**.
+Cybercrime investigations are often handled as individual cases.
 
-A phone number, UPI ID, bank account, phishing domain, IP address, or other digital identifier may appear in multiple investigations without investigators immediately recognizing the relationship.
+A phone number discovered in one complaint may also appear in another case. A UPI identifier may be associated with multiple victims. A phishing domain may occur across several incidents. A bank account or IP address may connect investigations that initially appear unrelated.
 
-This creates several challenges:
+However, these relationships can remain difficult to discover when evidence is distributed across separate cases.
 
-* Evidence is distributed across different cases.
-* Investigators may need to manually compare recurring identifiers.
-* Relationships between seemingly unrelated cases can remain hidden.
-* Large evidence sets increase the difficulty of finding meaningful overlaps.
-* Existing investigation workflows can make relationship discovery time-consuming.
+Traditional workflows often require investigators to manually compare:
 
-### The Core Problem
+Phone numbers
 
-> **A critical connection may already exist in the evidence — but remain invisible because the evidence is distributed across separate cases.**
+UPI IDs
 
----
+Bank accounts
 
-## 2. The TRACE Solution
+Email addresses
 
-TRACE introduces a **cross-case evidence intelligence layer**.
+IP addresses
 
-It extracts digital entities from investigation evidence, compares them across cases, identifies recurring indicators, calculates deterministic relationship scores, and presents the resulting connections through an interactive investigation graph.
+Domains
 
-### TRACE Workflow
+Transaction identifiers
 
-```text
+Other digital indicators
+
+As the number of cases and evidence artifacts increases, manually identifying recurring entities becomes increasingly difficult.
+
+Core Problem
+
+Important relationships may already exist within available evidence, but remain hidden because that evidence is distributed across separate investigations.
+
+2. TRACE Solution
+
+TRACE introduces a cross-case evidence intelligence layer between raw investigation data and investigator decision-making.
+
+The system follows a structured workflow:
+
 Evidence
-   ↓
+   |
+   v
 Entity Extraction
-   ↓
+   |
+   v
+Entity Normalization
+   |
+   v
 Cross-Case Correlation
-   ↓
+   |
+   v
 Evidence Overlap Analysis
-   ↓
-Deterministic Confidence Scoring
-   ↓
-Relationship Visualization
-   ↓
+   |
+   v
+Deterministic Relationship Scoring
+   |
+   v
+Graph Visualization
+   |
+   v
 Investigative Lead
-   ↓
+   |
+   v
 Human Verification
-```
 
-TRACE does not attempt to replace the investigator.
+The objective is not to automatically determine whether two cases belong to the same criminal network.
 
-It helps the investigator **see connections faster**.
+Instead, TRACE identifies relationships that deserve investigator attention.
 
----
+3. What Makes TRACE Different?
 
-## 3. Why TRACE?
+TRACE is not intended to be another generic case-management application.
 
-Traditional investigation workflows often focus on:
+Its primary purpose is cross-case relationship discovery.
 
-```text
-Case A → Investigate → Close
-Case B → Investigate → Close
-Case C → Investigate → Close
-```
+Traditional Investigation Workflow
 
-TRACE introduces a different perspective:
+TRACE
 
-```text
-Case A ─────┐
-            │
-Case B ─────┼──→ Shared Indicators → Potential Relationship
-            │
-Case C ─────┘
-```
+Case-by-case investigation
 
-The objective is to transform isolated evidence into **connected investigative context**.
+Cross-case correlation
 
----
+Manual identifier comparison
 
-## 4. What Makes TRACE Different?
+Automated entity matching
 
-TRACE is not positioned as another generic case-management system.
+Evidence distributed across cases
 
-Its core focus is **cross-case relationship discovery**.
+Structured evidence relationships
 
-| Traditional Workflow                  | TRACE                                |
-| ------------------------------------- | ------------------------------------ |
-| Case-by-case analysis                 | Cross-case correlation               |
-| Manual identifier comparison          | Automated entity matching            |
-| Evidence distributed across reports   | Structured evidence context          |
-| Hidden relationships                  | Interactive relationship graph       |
-| Manual lead discovery                 | Lead-oriented intelligence           |
-| Difficult-to-explain scoring          | Deterministic scoring                |
-| Evidence without context              | Evidence with provenance             |
-| Investigator searches for connections | TRACE surfaces potential connections |
+Hidden recurring indicators
 
-### Core Differentiator
+Surfaced cross-case indicators
 
-> **TRACE focuses on what connects cases, not just what exists inside a case.**
+Manual relationship discovery
 
----
+Automated lead discovery
 
-## 5. Key Features
+Opaque conclusions
 
-### Cross-Case Linkage Engine
+Deterministic and explainable scoring
 
-TRACE identifies recurring digital indicators across investigations.
+Evidence without relationship context
 
-Supported entities include:
+Evidence-linked relationships
 
-* Telephone numbers
-* UPI IDs
-* Bank accounts
-* Phishing domains
-* IP addresses
-* Email addresses
-* Other supported digital indicators
+Investigator searches for connections
 
-A recurring entity can become a candidate relationship between cases.
+TRACE surfaces potential connections
 
----
+Core Differentiator
 
-### Deterministic Confidence Scoring
+TRACE focuses on what connects investigations, not only what exists inside an individual investigation.
 
-TRACE uses deterministic analysis rather than relying on unexplained black-box predictions.
+4. Core Capabilities
 
-Relationship strength can be derived from factors such as:
+4.1 Cross-Case Linkage
 
-* Entity overlap
-* Number of supporting artifacts
-* Cross-case recurrence
-* Evidence source
-* Relationship type
-* Supporting provenance
+TRACE identifies recurring digital indicators across investigation cases.
 
-This makes the result easier to inspect and explain.
+Supported indicator categories include:
 
-> **TRACE identifies relationships. Investigators determine their significance.**
+Telephone numbers
 
----
+UPI IDs
 
-### Interactive Investigation Graph
+Bank accounts
 
-TRACE provides an interactive SVG-based network visualization for exploring relationships between cases and digital entities.
+Email addresses
 
-The graph supports:
+IP addresses
 
-* Radial layouts
-* Case-to-entity relationships
-* Search filtering
-* Entity inspection
-* Relationship visualization
-* Investigation drawers
-* Interactive exploration
+Domains
 
-An investigator can move through:
+Other supported digital identifiers
 
-```text
+When the same indicator appears across multiple cases, TRACE can surface it as a potential cross-case relationship.
+
+4.2 Deterministic Relationship Scoring
+
+TRACE uses deterministic rules to calculate relationship strength.
+
+The prototype can assign weighted contributions to different types of shared indicators.
+
+Example:
+
+Shared phone number       +40
+Shared UPI ID             +35
+Shared bank account       +35
+Shared domain             +25
+Supporting artifacts      Additional evidence
+
+The exact relationship score is derived from the configured correlation rules and supporting evidence.
+
+This provides an important property:
+
+The investigator can understand why a relationship was surfaced.
+
+TRACE does not present an unexplained probability as fact.
+
+4.3 Interactive Investigation Graph
+
+TRACE provides an interactive graph for exploring relationships between cases and digital entities.
+
+The graph allows investigators to move through relationships such as:
+
 Case
- ↓
-Entity
- ↓
+  |
+  v
+Digital Entity
+  |
+  v
 Related Case
- ↓
+  |
+  v
 Supporting Evidence
-```
 
----
+The interface supports:
 
-### Evidence Intelligence
+Case-to-entity relationships
 
-TRACE is designed around structured evidence ingestion and entity extraction from common cybercrime investigation artifacts.
+Interactive node exploration
 
-Prototype-supported evidence scenarios include:
+Search filtering
 
-* SMS dumps
-* Bank records
-* Server logs
-* CDR reports
-* Digital investigation records
+Relationship inspection
 
-The system converts relevant identifiers into structured entities that can be correlated across investigations.
+Graph navigation
 
----
+Zoom and pan interaction
 
-### Investigative CLI
+Investigation drawers
 
-TRACE includes a terminal-style investigation interface for rapid keyboard-driven workflows.
+Entity inspection
 
-Example commands:
+This allows investigators to visually understand how multiple cases are connected.
 
-```text
+4.4 Evidence Intelligence
+
+TRACE is designed to process structured investigation artifacts and extract useful digital indicators.
+
+Prototype evidence scenarios include:
+
+SMS records
+
+Bank records
+
+Server logs
+
+CDR-style reports
+
+Digital investigation records
+
+Other structured textual evidence
+
+Extracted indicators can subsequently participate in cross-case correlation.
+
+4.5 Evidence Integrity
+
+The investigation workflow incorporates evidence integrity concepts including:
+
+SHA-256 evidence fingerprinting
+
+MIME and size validation
+
+Evidence identifiers
+
+Chain-of-custody style records
+
+Evidence provenance
+
+Structured audit information
+
+The purpose is to maintain traceability between an investigative relationship and the evidence that contributed to it.
+
+4.6 Investigative CLI
+
+TRACE includes a terminal-style investigation interface for rapid investigation workflows.
+
+Example commands include:
+
+help
 cases
-leads
 inspect <entity>
-link <entity>
-analyze <case>
-```
+correlate
+evidence
+audit
+clear
+ai
 
-This provides an alternative to purely graphical investigation workflows.
+The CLI provides an alternative to navigating entirely through the graphical interface.
 
----
+4.7 AI-Assisted Investigation
 
-### Responsive Interface
+TRACE can integrate a server-side Gemini model as an investigative assistance layer.
 
-TRACE is designed for both desktop and mobile environments.
+The AI does not receive unrestricted application access.
 
-The interface includes:
+Instead, it operates through a controlled tool gateway exposing approved read-only investigation operations.
 
-* Responsive layouts
-* Slide-out drawers
-* Mobile navigation
-* Fast search
-* Adaptive investigation views
-* Desktop keyboard workflows
+Current tool categories include:
 
-The investigation workflow remains accessible across different screen sizes.
+search_cases
+get_case
+search_entities
+inspect_entity
+find_cross_case_links
+get_relationship
+get_evidence_metadata
+get_case_timeline
+analyze_case
 
----
+The AI can assist with:
 
-## 6. Example Investigation Scenario
+Finding relevant cases
 
-Imagine two cybercrime cases that initially appear unrelated.
+Inspecting entities
 
-### Case A
+Explaining relationships
 
-```text
+Summarizing case information
+
+Analyzing available evidence
+
+Identifying potential investigative leads
+
+The AI cannot independently modify evidence or execute arbitrary system operations.
+
+AI Design Principle
+
+AI assists the investigator. AI does not replace the investigator.
+
+5. Security Architecture
+
+Security is treated as a core part of the TRACE architecture rather than an additional feature.
+
+The prototype implements multiple defensive controls around API access, evidence processing, AI interaction, and application inputs.
+
+Security Principles
+
+System Security Policy
+        |
+        v
+Tool Authorization Policy
+        |
+        v
+User Request
+        |
+        v
+Evidence / Case Data
+
+Lower-trust content cannot override higher-level security policies.
+
+5.1 AI Tool Isolation
+
+The AI operates through a restricted tool gateway.
+
+The AI does not have access to:
+
+Shell execution
+
+Arbitrary SQL
+
+Filesystem operations
+
+External network requests
+
+Raw database dumps
+
+Evidence modification
+
+Administrative mutation tools
+
+Only explicitly approved read-only operations can be exposed to the AI layer.
+
+5.2 Evidence Isolation
+
+Evidence content is treated as untrusted data.
+
+Evidence is explicitly separated from system instructions so that malicious text contained inside an evidence artifact cannot automatically become an instruction for the AI system.
+
+Conceptually:
+
+SYSTEM POLICY
+      |
+      v
+TOOL AUTHORIZATION
+      |
+      v
+AI REQUEST
+      |
+      v
+UNTRUSTED EVIDENCE DATA
+
+This separation helps reduce prompt-injection risks originating from malicious evidence.
+
+5.3 Server-Side Authorization
+
+Security-sensitive authorization decisions are derived server-side.
+
+Client-provided parameters cannot simply declare elevated privileges such as:
+
+{
+  "role": "admin"
+}
+
+or:
+
+{
+  "bypassAuth": true
+}
+
+Authorization must be determined by server-side policy.
+
+5.4 Input Validation
+
+TRACE validates sensitive identifiers and request parameters before processing.
+
+Validation is applied to areas such as:
+
+Case identifiers
+
+Entity identifiers
+
+Evidence identifiers
+
+Relationship identifiers
+
+Query parameters
+
+Request payloads
+
+Invalid requests are rejected before reaching sensitive application logic.
+
+5.5 API Security
+
+The server implements structured API behavior including:
+
+Request validation
+
+Standardized response envelopes
+
+Request identifiers
+
+Structured error responses
+
+Rate limiting
+
+Query bounds
+
+Payload size limits
+
+Security headers
+
+Disabled Express fingerprinting
+
+Controlled error handling
+
+Example response structure:
+
+{
+  "success": true,
+  "data": {},
+  "requestId": "..."
+}
+
+Errors are returned using structured codes such as:
+
+INVALID_ID
+NOT_FOUND
+PAYLOAD_TOO_LARGE
+RATE_LIMITED
+
+Raw server stack traces are not intended to be exposed to clients.
+
+6. Security Testing
+
+TRACE has been tested against common application and AI security attack classes.
+
+The current automated test suite reports:
+
+106 / 106 tests passing
+0 failures
+
+Tested categories include:
+
+Attack Category
+
+Tested Protection
+
+Cross-Site Scripting
+
+Input sanitization and output handling
+
+SQL Injection
+
+Input validation and gateway protection
+
+Path Traversal
+
+Path pattern validation
+
+Command Injection
+
+Command pattern filtering
+
+Prompt Injection
+
+Instruction-override detection and evidence isolation
+
+Privilege Escalation
+
+Server-side authorization and parameter filtering
+
+Data Exfiltration
+
+Pagination and query bounds
+
+Payload Exhaustion
+
+Request body size limits
+
+These results represent protection against the tested vectors and should not be interpreted as proof that the application is immune to all future attacks.
+
+7. Evidence Provenance
+
+TRACE follows a provenance-first approach.
+
+A relationship should remain explainable back to the evidence that contributed to it.
+
+Relationship
+    |
+    +-- Entity
+    |
+    +-- Source Case
+    |
+    +-- Supporting Artifact
+    |
+    +-- Evidence Type
+    |
+    +-- Relationship Rule
+    |
+    +-- Confidence / Overlap Score
+
+This allows an investigator to ask:
+
+Why did TRACE identify this relationship?
+
+rather than simply:
+
+TRACE says these cases are connected.
+
+8. Example Investigation
+
+Consider two apparently unrelated cases.
+
+Case A
+
 Phone Number
 +91 XXXXXXXX
 
@@ -252,11 +548,9 @@ fraud@upi
 
 Domain
 example-phishing.com
-```
 
-### Case B
+Case B
 
-```text
 Phone Number
 +91 XXXXXXXX
 
@@ -265,379 +559,568 @@ XXXX1234
 
 IP Address
 103.xxx.xxx.xxx
-```
 
-TRACE detects that the same phone number occurs across both cases.
+TRACE identifies the repeated phone number.
 
-Instead of treating the cases as completely independent, TRACE surfaces the repeated indicator as a potential connection.
+Instead of treating both cases as completely independent, TRACE surfaces the shared entity as a potential relationship.
 
-The investigator can then inspect the relationship and supporting evidence.
+The investigator can then inspect:
 
-```text
-             Phone Number
-                  │
-          ┌───────┴───────┐
-          │               │
-        Case A          Case B
-          │               │
-      UPI / Domain    Bank / IP
-```
+Shared Entity
+     |
+     +-- Case A
+     |     |
+     |     +-- UPI
+     |     +-- Domain
+     |
+     +-- Case B
+           |
+           +-- Bank Account
+           +-- IP Address
 
-The system does **not** automatically conclude that the cases belong to the same criminal network.
+The system does not conclude that both cases belong to the same criminal network.
 
-It produces an **investigative lead for human verification**.
+The relationship becomes an investigative lead that requires human verification.
 
----
+9. Human-in-the-Loop Investigation
 
-## 7. Evidence Provenance
-
-TRACE follows a **provenance-first** approach.
-
-A detected relationship should remain traceable to the evidence that produced it.
-
-```text
-Relationship
-     │
-     ├── Entity
-     │
-     ├── Source Case
-     │
-     ├── Supporting Artifact
-     │
-     ├── Evidence Type
-     │
-     └── Confidence / Overlap Score
-```
-
-This allows investigators to ask:
-
-> **"Why did TRACE identify this connection?"**
-
-rather than simply:
-
-> **"TRACE says these cases are connected."**
-
----
-
-## 8. Human-in-the-Loop Intelligence
-
-TRACE is intentionally designed as an **investigative assistance system**, not an autonomous decision-maker.
+TRACE is intentionally designed as an investigative assistance platform rather than an autonomous decision-making system.
 
 The intended workflow is:
 
-```text
-TRACE discovers a relationship
-              ↓
-TRACE explains the supporting evidence
-              ↓
+TRACE identifies a potential relationship
+              |
+              v
+TRACE explains supporting indicators
+              |
+              v
 Investigator reviews the relationship
-              ↓
-Investigator validates the evidence
-              ↓
+              |
+              v
+Investigator verifies the underlying evidence
+              |
+              v
 Investigator determines investigative relevance
-```
 
-This keeps human judgment at the center of the investigation.
+This ensures that final investigative judgment remains with authorized human investigators.
 
----
+10. System Architecture
 
-## 9. System Architecture
-
-```text
                          TRACE
-                           │
-             ┌─────────────┴─────────────┐
-             │                           │
+                           |
+             +-------------+-------------+
+             |                           |
+             v                           v
       Presentation Layer          Intelligence Layer
-             │                           │
-      ┌──────┼──────┐             ┌─────┼─────┐
-      │      │      │             │     │     │
- Dashboard Graph   CLI       Extraction Correlation Scoring
-      │      │      │             │     │     │
-      └──────┴──────┘             └─────┴─────┘
-             │                           │
-             └─────────────┬─────────────┘
-                           │
-                           ▼
-                  Investigation Dataset
-                           │
-                           ▼
-                    Structured Entities
-```
+             |                           |
+       +-----+-----+             +-------+-------+
+       |     |     |             |       |       |
+       v     v     v             v       v       v
+   Dashboard Graph  CLI      Extraction Correlation Scoring
+       |     |     |             |       |       |
+       +-----+-----+             +-------+-------+
+             |                           |
+             +-------------+-------------+
+                           |
+                           v
+                Investigation Dataset
+                           |
+                           v
+                  Structured Entities
+                           |
+                           v
+                  Investigative Leads
 
----
+11. Technology Stack
 
-## 10. Technology Stack
+Layer
 
-| Layer             | Technology                                               |
-| ----------------- | -------------------------------------------------------- |
-| Frontend          | React 19                                                 |
-| Language          | TypeScript                                               |
-| Styling           | Tailwind CSS                                             |
-| Icons             | Lucide Icons                                             |
-| Animation         | Motion                                                   |
-| Build Tool        | Vite 6                                                   |
-| Runtime Tooling   | tsx / esbuild                                            |
-| Visualization     | SVG                                                      |
-| Intelligence Core | Deterministic Entity Extraction & Cross-Case Correlation |
-| Data              | Synthetic Investigation Dataset                          |
+Technology
 
----
+Frontend
 
-## 11. Repository Structure
+React 19
 
-```text
+Language
+
+TypeScript
+
+Styling
+
+Tailwind CSS
+
+Icons
+
+Lucide React
+
+Animation
+
+Motion
+
+Build Tool
+
+Vite
+
+Server
+
+Node.js / Express
+
+AI Integration
+
+Gemini 2.5 Flash
+
+Visualization
+
+SVG / Interactive Graph
+
+Runtime Tooling
+
+tsx / esbuild
+
+Intelligence Core
+
+Deterministic Entity Extraction and Correlation
+
+Dataset
+
+Synthetic Investigation Data
+
+12. Repository Structure
+
 TRACE/
-│
-├── src/
-│   ├── components/
-│   │   ├── dashboard/
-│   │   ├── cases/
-│   │   ├── graph/
-│   │   ├── evidence/
-│   │   ├── terminal/
-│   │   └── layout/
-│   │
-│   ├── context/
-│   │   └── TraceContext
-│   │
-│   ├── data/
-│   │   └── Synthetic Investigation Dataset
-│   │
-│   ├── engine/
-│   │   ├── Entity Extraction
-│   │   └── Cross-Case Correlation
-│   │
-│   ├── types/
-│   │   └── TypeScript Interfaces & Entity Types
-│   │
-│   ├── App.tsx
-│   └── main.tsx
-│
-├── index.html
-├── metadata.json
-├── package.json
-├── tsconfig.json
-├── vite.config.ts
-└── README.md
-```
+|
++-- src/
+|   |
+|   +-- components/
+|   |   +-- dashboard/
+|   |   +-- cases/
+|   |   +-- graph/
+|   |   +-- evidence/
+|   |   +-- terminal/
+|   |   +-- layout/
+|   |
+|   +-- context/
+|   |   +-- TraceContext
+|   |
+|   +-- data/
+|   |   +-- Synthetic Investigation Dataset
+|   |
+|   +-- engine/
+|   |   +-- Entity Extraction
+|   |   +-- Cross-Case Correlation
+|   |
+|   +-- types/
+|   |   +-- TypeScript Interfaces
+|   |   +-- Entity Types
+|   |
+|   +-- App.tsx
+|   +-- main.tsx
+|
++-- server.ts
++-- index.html
++-- metadata.json
++-- package.json
++-- tsconfig.json
++-- vite.config.ts
++-- .env.example
++-- .gitignore
++-- README.md
 
----
+13. Getting Started
 
-## 12. Getting Started
+Prerequisites
 
-### Prerequisites
+Node.js 18+
 
-* Node.js 18+
-* npm, Yarn, or pnpm
-* Git
+npm, Yarn, or pnpm
 
-### Clone the Repository
+Git
 
-```bash
+Clone
+
 git clone https://github.com/voldey-04/Trace.git
 cd Trace
-```
 
-### Install Dependencies
+Install Dependencies
 
-```bash
 npm install
-```
 
-### Configure Environment Variables
+Configure Environment Variables
 
-```bash
+Create a local environment file:
+
 cp .env.example .env
-```
 
-Configure the required values inside `.env` if applicable.
+Configure the required environment variables locally.
 
-### Start Development Server
+Do not commit secrets or API keys to the repository.
 
-```bash
+Start Development Server
+
 npm run dev
-```
 
-The development server will be available at the local URL provided by Vite.
+The development server will provide the local application URL.
 
-### Production Build
+Production Build
 
-```bash
 npm run build
-```
 
----
+14. Functional Status
 
-## 13. Design Principles
+The current prototype implements the following workflows:
 
-TRACE is built around five principles.
+Capability
 
-### 01 — Evidence First
+Status
 
-Every investigative lead should originate from identifiable evidence.
+Investigation Dashboard
 
-### 02 — Explainable Intelligence
+Implemented
 
-Relationships should be understandable rather than hidden behind opaque predictions.
+Case Management
 
-### 03 — Cross-Case Thinking
+Implemented
+
+Cross-Case Correlation
+
+Implemented
+
+Entity Extraction
+
+Implemented
+
+Relationship Scoring
+
+Implemented
+
+Interactive Investigation Graph
+
+Implemented
+
+Evidence Metadata
+
+Implemented
+
+Evidence Integrity Concepts
+
+Implemented
+
+Investigation CLI
+
+Implemented
+
+Responsive Interface
+
+Implemented
+
+AI Investigation Assistance
+
+Implemented
+
+Read-Only AI Tool Gateway
+
+Implemented
+
+Security Validation
+
+Implemented
+
+Synthetic Investigation Dataset
+
+Implemented
+
+15. Current Prototype Limitations
+
+TRACE is currently a hackathon prototype and should not be considered a production law-enforcement platform.
+
+Data Storage
+
+The current demonstration environment uses synthetic and in-memory investigation data.
+
+A production deployment would require a persistent and secure data layer.
+
+Potential future storage infrastructure includes:
+
+Firestore
+
+Cloud SQL
+
+Secure object storage
+
+Dedicated evidence repositories
+
+Audit Retention
+
+The current prototype uses an in-memory audit mechanism.
+
+A production system would require persistent audit storage and integration with appropriate security monitoring infrastructure.
+
+OCR
+
+Current evidence processing is primarily designed around structured and textual evidence.
+
+Scanned documents and image-based PDFs would require dedicated OCR infrastructure such as Document AI or Tesseract.
+
+Authentication
+
+Production deployment would require strong identity management, role-based access control, session security, and institutional authorization.
+
+16. Future Roadmap
+
+Evidence Intelligence
+
+Advanced entity resolution
+
+Timeline reconstruction
+
+Evidence clustering
+
+Relationship-based case clustering
+
+Automated investigation reports
+
+Advanced evidence comparison
+
+Multi-format forensic ingestion
+
+Graph Intelligence
+
+Community detection
+
+Centrality analysis
+
+Temporal graph analysis
+
+Relationship propagation
+
+Suspicious cluster identification
+
+Multi-hop relationship discovery
+
+Security
+
+Strong investigator authentication
+
+Role-based access control
+
+Encryption at rest and in transit
+
+Persistent immutable audit logging
+
+Security monitoring
+
+Evidence retention policies
+
+Secure institutional deployment
+
+AI
+
+Evidence-grounded investigation summaries
+
+Natural-language investigation queries
+
+Explainable relationship analysis
+
+Timeline summarization
+
+Investigator workflow assistance
+
+Controlled AI tool expansion
+
+AI capabilities will remain constrained by explicit authorization boundaries and read-only access wherever possible.
+
+Integration
+
+Future versions could support controlled integrations with:
+
+Authorized forensic systems
+
+Institutional evidence repositories
+
+Secure case-management systems
+
+Approved intelligence sources
+
+Enterprise investigation infrastructure
+
+Such integrations would require appropriate legal, privacy, security, and authorization controls.
+
+17. Design Principles
+
+Evidence First
+
+Every investigative lead should be traceable to available evidence.
+
+Explainability
+
+Investigators should be able to understand why TRACE surfaced a relationship.
+
+Cross-Case Intelligence
 
 Indicators should be analyzed beyond individual case boundaries.
 
-### 04 — Human-in-the-Loop
+Human-in-the-Loop
 
 TRACE assists investigators rather than replacing investigative judgment.
 
-### 05 — Investigation Speed
+Security by Design
+
+AI, evidence, APIs, and application inputs operate within explicit security boundaries.
+
+Investigation Speed
 
 Search, correlation, visualization, and CLI workflows are designed to reduce repetitive manual investigation.
 
----
+18. Security and Privacy Disclaimer
 
-## 14. Prototype Scope
+TRACE is a research and hackathon prototype.
 
-TRACE is currently an **internal hackathon MVP**.
+The current demonstration does not interact with:
 
-The prototype demonstrates:
+Live banking infrastructure
 
-* Deterministic entity extraction
-* Cross-case correlation
-* Evidence overlap analysis
-* Relationship scoring
-* Investigation graph visualization
-* Evidence provenance
-* Lead discovery
-* Investigator-oriented workflows
-* Responsive investigation interface
-* CLI-based investigation commands
+Real individuals
 
-The current system uses synthetic data and is intended to demonstrate the underlying concept and workflow.
+Real law-enforcement databases
 
----
+Unauthorized systems
 
-## 15. Future Roadmap
+Private third-party infrastructure
 
-Potential future development includes:
+The demonstration dataset is synthetic.
 
-### Evidence & Intelligence
+Any production implementation would require appropriate:
 
-* Advanced entity resolution
-* Timeline reconstruction
-* Relationship-based case clustering
-* Evidence integrity verification
-* Automated investigation report generation
+Authentication
 
-### Security
+Authorization
 
-* Role-based access control
-* Strong investigator authentication
-* Encrypted evidence storage
-* Immutable audit trails
-* Secure evidence handling
+Encryption
 
-### Investigation
+Evidence integrity controls
 
-* Advanced graph analytics
-* Case prioritization
-* Pattern detection
-* Evidence comparison
-* Collaborative investigation workspaces
+Audit logging
 
-### Integration
+Access monitoring
 
-* Authorized forensic data sources
-* Secure evidence-management systems
-* Controlled institutional integrations
-* Enterprise investigation infrastructure
+Data retention policies
 
-Any production implementation would require appropriate legal, privacy, security, and evidentiary safeguards.
+Privacy protections
 
----
+Legal authorization
 
-## 16. Security & Privacy
+Institutional security review
 
-TRACE is designed as an investigative assistance platform.
+19. Operational Disclaimer
 
-A production implementation should incorporate:
-
-* Strong authentication
-* Role-based access control
-* Encryption at rest and in transit
-* Evidence integrity controls
-* Immutable audit logging
-* Access monitoring
-* Data retention policies
-* Secure evidence handling
-* Appropriate legal authorization
-
-The current prototype does **not** interact with:
-
-* Live banking infrastructure
-* Real individuals
-* Unauthorized systems
-* Real law-enforcement databases
-
----
-
-## 17. Operational Disclaimer
-
-> **TRACE assists human investigators in organizing, correlating, and visualizing digital indicators.**
+TRACE assists authorized investigators in organizing, correlating, and visualizing digital indicators.
 
 TRACE:
 
-* Does **not** independently determine guilt.
-* Does **not** track live individuals.
-* Does **not** access live banking systems.
-* Does **not** make autonomous investigative decisions.
-* Does **not** replace forensic examination.
-* Does **not** establish legal proof solely through a detected relationship.
+Does not independently determine guilt.
 
-All detected relationships should be treated as **investigative leads requiring human verification and appropriate evidentiary assessment**.
+Does not track live individuals.
 
----
+Does not access live banking systems.
 
-## 18. Project Status
+Does not make autonomous investigative decisions.
 
-| Category      | Status                              |
-| ------------- | ----------------------------------- |
-| Project       | TRACE                               |
-| Type          | Cybercrime Investigation Assistance |
-| Stage         | Internal Hackathon MVP              |
-| Data          | Synthetic / Demonstration Data      |
-| Intelligence  | Deterministic                       |
-| Visualization | Interactive Investigation Graph     |
-| Interface     | Desktop + Mobile                    |
-| Deployment    | Prototype Ready                     |
+Does not replace forensic examination.
 
----
+Does not establish legal proof solely through detected relationships.
 
-## 19. Vision
+Does not treat AI-generated output as authoritative evidence.
+
+Detected relationships are investigative leads and require appropriate human verification and evidentiary assessment.
+
+20. Project Status
+
+Category
+
+Status
+
+Project
+
+TRACE
+
+Domain
+
+Cybercrime Investigation Assistance
+
+Stage
+
+Hackathon Prototype
+
+Data
+
+Synthetic Investigation Data
+
+Correlation
+
+Deterministic
+
+Visualization
+
+Interactive Investigation Graph
+
+AI
+
+Controlled Server-Side Assistance
+
+Security Testing
+
+106 / 106 Tests Passing
+
+Interface
+
+Desktop + Mobile
+
+Deployment
+
+Prototype Ready
+
+21. Vision
 
 Cybercrime investigations rarely exist as completely isolated events.
 
-The same digital identifier may appear across different victims, complaints, transactions, domains, devices, or investigations.
+The same digital identifier can appear across different victims, complaints, transactions, domains, devices, and investigations.
 
-The challenge is not always a lack of evidence.
+The challenge is not always the absence of evidence.
 
-Sometimes, the challenge is **finding the relationship between pieces of evidence that already exist.**
+Sometimes the challenge is finding the relationship between evidence that already exists.
 
 TRACE is built to address that gap.
 
-> **From isolated evidence to connected intelligence.**
+FROM
 
-### TRACE
+Isolated Cases
+      |
+      v
+Scattered Evidence
 
-**Discover the connection. Verify the evidence. Advance the investigation.**
+TO
 
----
+Connected Evidence
+      |
+      v
+Cross-Case Intelligence
+      |
+      v
+Investigative Leads
+      |
+      v
+Human Verification
 
-## License
+From isolated evidence to connected intelligence.
 
-This project is currently intended for **internal hackathon and educational demonstration purposes**.
+TRACE
 
-An appropriate open-source or proprietary license should be added before public production distribution.
+Discover the connection. Verify the evidence. Advance the investigation.
 
----
+License
 
-**Built for investigation. Designed for clarity. Driven by evidence.**
+TRACE is currently intended for hackathon, research, and educational demonstration purposes.
+
+A formal open-source or proprietary license should be selected before production or commercial distribution.
+
+Built for investigation. Designed for clarity. Driven by evidence.
