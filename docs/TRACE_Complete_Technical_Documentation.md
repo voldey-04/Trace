@@ -136,6 +136,10 @@ The latest recorded repository change hardened cross-case matching so that it is
 
 This is an important reliability improvement because repeated analysis should not create duplicate relationships or unexpectedly overwrite investigative decisions.
 
+## 6.7 Documentation and Validation Hardening
+
+The repository now includes a focused documentation tree covering architecture, requirements, investigation workflow, intelligence, evidence integrity, AI architecture, security, API behavior, development, deployment and testing. Historical TestSprite evidence and the current audit are kept in separate reports so that earlier results are not confused with current status.
+
 # 7. Requirements Analysis
 
 ## 7.1 Functional Requirements
@@ -253,7 +257,29 @@ TRACE/
 ├── vite.config.ts
 ├── .env.example
 ├── .gitignore
-└── README.md
+├── README.md
+└── docs/
+    ├── README.md
+    ├── 01-project-overview.md
+    ├── 02-requirements.md
+    ├── 03-architecture.md
+    ├── 04-investigation-workflow.md
+    ├── 05-intelligence-engine.md
+    ├── 06-evidence-integrity.md
+    ├── 07-ai-architecture.md
+    ├── 08-security.md
+    ├── 09-api.md
+    ├── 10-development.md
+    ├── 11-deployment.md
+    ├── 12-testing.md
+    ├── reports/
+    │   ├── audit-summary.md
+    │   ├── functional-testing.md
+    │   ├── security-testing.md
+    │   ├── regression-testing.md
+    │   ├── testsprite-historical-report.md
+    │   └── test-results.json
+    └── TRACE_Complete_Technical_Documentation.md
 ```
 
 # 11. Core Domain Model
@@ -266,14 +292,7 @@ A case represents an investigation and provides the primary context for evidence
 
 An entity is a digital indicator extracted from or associated with evidence.
 
-Examples:
-
-- Telephone number
-- UPI ID
-- Bank account
-- Email address
-- IP address
-- Domain
+Examples include telephone numbers, UPI IDs, bank accounts, email addresses, IP addresses and domains.
 
 ## 11.3 Evidence
 
@@ -293,23 +312,17 @@ Audit and disposition information supports the human-in-the-loop workflow. Machi
 
 The intelligence workflow begins by identifying supported digital indicators from structured investigation content.
 
-Extraction transforms evidence content into normalized investigation entities.
+## 12.2 Normalization
 
-## 12.2 Entity Normalization
-
-Normalization reduces formatting differences so logically equivalent identifiers can be compared consistently.
+Normalization reduces presentation differences so logically equivalent identifiers can be compared consistently.
 
 ## 12.3 Cross-Case Correlation
 
-The correlation engine compares normalized entities across cases and creates candidate relationships.
-
-The latest hardening specifically targets deterministic, idempotent behavior and deduplication of legacy relationship records.
+The correlation engine compares normalized entities across cases and creates candidate relationships. The current hardening makes matching deterministic and idempotent, supports deduplication of legacy relationship records and preserves investigator dispositions.
 
 ## 12.4 Deterministic Relationship Scoring
 
 The documented prototype uses weighted contributions for shared indicators.
-
-Example conceptual weights:
 
 ```text
 Shared phone number       +40
@@ -319,17 +332,15 @@ Shared domain             +25
 Supporting context       additional evidence
 ```
 
-The values are explainability rules. They should not be interpreted as statistical probability.
+These are explainability rules, not statistical probabilities.
 
-## 12.5 Why Determinism Matters
+## 12.5 Reliability Requirement
 
-If the same correlation operation creates duplicate relationships or changes investigator dispositions each time it runs, the investigation system becomes difficult to trust.
-
-Deterministic matching makes the intelligence layer repeatable.
+Repeated correlation should not create duplicate relationships or unexpectedly overwrite investigator decisions.
 
 # 13. Investigation Graph
 
-The graph is the visual expression of TRACE's cross-case concept.
+The graph is the visual expression and a navigation mechanism for TRACE's cross-case model.
 
 ```text
 Case A
@@ -343,47 +354,29 @@ Case A
                            +---- Evidence
 ```
 
-Key graph behaviors:
-
-- Case-to-entity relationships.
-- Entity-to-case traversal.
-- Search/filtering.
-- Zoom and pan.
-- Relationship inspection.
-- Navigation into case details.
-- Context-preserving investigation panels.
-
-The graph is not only a visualization. It is an investigation navigation mechanism.
+Supported graph behaviors include exploration, search, filtering, reset, relationship inspection and navigation to supported case details.
 
 # 14. Evidence Integrity and Provenance
 
 ## 14.1 SHA-256 Fingerprinting
 
-Evidence records can be associated with a SHA-256 fingerprint. The purpose is to provide a deterministic integrity reference for the represented artifact or payload.
+Evidence records can be associated with a SHA-256 fingerprint as a deterministic integrity reference.
 
 ## 14.2 Chain of Custody
 
-The prototype includes chronological chain-of-custody style records.
+The prototype includes chronological chain-of-custody style records to demonstrate provenance and auditability. These should not be described as a certified legal evidence-management system.
 
-These demonstrate provenance and auditability but should not be described as a certified legal evidence-management system.
-
-## 14.3 Evidence Traceability
+## 14.3 Provenance Model
 
 ```text
 Relationship
    |
    +-- Supporting Entity
-   |
    +-- Source Case
-   |
    +-- Evidence Artifact
-   |
    +-- Evidence Metadata
-   |
    +-- Correlation Rule
-   |
    +-- Score / Severity
-   |
    +-- Investigator Disposition
 ```
 
@@ -398,19 +391,12 @@ Client
 Express
   |
   +--> Request ID
-  |
   +--> Security Headers
-  |
   +--> CORS
-  |
   +--> Body Size Limits
-  |
   +--> /api Router
-  |
   +--> Authentication
-  |
   +--> Validation
-  |
   +--> Investigation Service / AI Gateway
   |
   v
@@ -430,7 +416,7 @@ Structured Response
 | `GET /api/evidence/:id` | Evidence detail |
 | `GET /api/links` | Cross-case link listing |
 | `GET /api/relationships/:id` | Relationship detail |
-| Analysis/AI routes | Controlled through backend services and validation |
+| `GET /api/ai/audit` | AI tool audit information, as documented by the current audit |
 
 ## 15.3 Standard Response Contract
 
@@ -442,112 +428,75 @@ Structured Response
 }
 ```
 
-Error:
-
-```json
-{
-  "success": false,
-  "error": {
-    "code": "NOT_FOUND",
-    "message": "..."
-  },
-  "requestId": "..."
-}
-```
+Errors use the same request-tracing identifier and controlled error codes.
 
 # 16. Security Architecture
 
-Security is treated as part of the architecture rather than as an afterthought.
+## 16.1 Implemented Controls
 
-## 16.1 Request IDs
+- Request IDs.
+- `X-Content-Type-Options: nosniff`.
+- `Referrer-Policy: strict-origin-when-cross-origin`.
+- `Strict-Transport-Security`.
+- `Permissions-Policy`.
+- `X-Frame-Options: SAMEORIGIN`.
+- Content Security Policy.
+- Controlled CORS.
+- 2 MB body limits.
+- In-memory rate limiting.
+- Optional `TRACE_API_KEY` authentication.
+- Identifier, pagination, search, enum and score validation.
+- Structured error responses.
+- Disabled Express fingerprinting.
 
-Each request receives a sanitized request identifier or a newly generated identifier.
+## 16.2 AI Security Boundary
 
-The ID is returned in the response and the `x-request-id` header.
+The current audit reports nine read-only investigative tools and zero access to shell execution, arbitrary SQL, file modification or external network requests.
 
-This supports debugging and audit correlation.
+Evidence text is treated as untrusted content and separated from trusted system/tool instructions.
 
-## 16.2 Security Headers
+## 16.3 Current Security Audit
 
-The backend sets controls including:
+```text
+106 / 106 automated tests passing
+0 failures
+```
 
-- `X-Content-Type-Options: nosniff`
-- `Referrer-Policy: strict-origin-when-cross-origin`
-- `Strict-Transport-Security`
-- `Permissions-Policy`
-- `X-Frame-Options: SAMEORIGIN`
-- Content Security Policy
+The tested attack classes reported by the current audit are XSS injection, SQL injection syntax, path traversal payloads, command injection operators, prompt injection overrides and parameter privilege escalation attempts.
 
-## 16.3 CORS
+The audit also reports active structured AI tool audit logging at `GET /api/ai/audit`.
 
-CORS is controlled through configured allowed origins. Local development and compatible Google AI Studio origins are supported by the prototype's default policy.
+## 16.4 Secrets
 
-## 16.4 Payload Limits
+The supplied audit reports zero hardcoded secrets/API keys, documented empty placeholders in `.env.example` and a clean production dependency graph.
 
-The Express server limits JSON and URL-encoded request bodies to 2 MB.
+## 16.5 Security Claim Boundary
 
-This reduces exposure to basic payload-memory exhaustion patterns.
-
-## 16.5 Rate Limiting
-
-The backend contains in-memory sliding-window rate limiters.
-
-- General API: 120 requests/minute per client key.
-- Intensive analysis/AI flows: 40 requests/minute per client key.
-
-For distributed production deployments, these should be replaced with a shared/distributed mechanism.
-
-## 16.6 API-Key Authentication
-
-When `TRACE_API_KEY` is configured, the API requires a matching Bearer token or `X-API-Key`.
-
-This provides an additional deployment-level access control.
-
-## 16.7 Input Validation
-
-The API validates:
-
-- Case IDs.
-- Entity identifiers.
-- Evidence IDs.
-- Relationship IDs.
-- Pagination.
-- Search strings.
-- Enumerated fields.
-- Minimum relationship scores.
-- Analysis payloads.
-
-## 16.8 Safe Error Handling
-
-Client-facing errors use controlled codes and messages.
-
-Fatal server exceptions are logged server-side with a request ID and returned to the client as a generic `INTERNAL_SERVER_ERROR`.
+The audit demonstrates successful results for the tested controls. It is not proof that TRACE is immune to all future vulnerabilities or untested attack paths.
 
 # 17. AI-Assisted Investigation
 
-## 17.1 AI Role
+## 17.1 Role
 
-The AI layer supports investigation-oriented search, explanation, summarization and analysis.
+AI assists with search, explanation, summarization and analysis. It is not the authoritative source of evidence.
 
-The AI is not the source of truth for evidence.
+## 17.2 Current Tool Set
 
-## 17.2 Tool Gateway
+The supplied audit identifies nine approved read-only tools:
 
-TRACE uses a controlled AI tool gateway instead of unrestricted model access.
+```text
+search_cases
+get_case
+search_entities
+inspect_entity
+find_cross_case_links
+get_relationship
+get_evidence_metadata
+get_case_timeline
+analyze_case
+```
 
-The documented read-oriented capabilities include operations for:
-
-- Searching cases.
-- Inspecting a case.
-- Searching entities.
-- Inspecting an entity.
-- Finding cross-case links.
-- Getting relationship information.
-- Getting evidence metadata.
-- Getting case timelines.
-- Analyzing a case.
-
-## 17.3 Security Boundary
+## 17.3 Trust Boundary
 
 ```text
 System Policy
@@ -568,21 +517,13 @@ Structured Investigation Data
 AI Explanation
 ```
 
-## 17.4 Prompt-Injection Isolation
+## 17.4 Human Oversight
 
-Evidence is treated as untrusted data.
-
-Text inside evidence is not automatically treated as a system instruction. This separation reduces the risk that malicious evidence content can override the AI's trusted operating rules.
-
-## 17.5 AI Principle
-
-> AI assists the investigator. AI does not replace the investigator.
+AI assists the investigator. It does not independently modify evidence or make final investigative determinations.
 
 # 18. CLI / Terminal Interface
 
-TRACE includes a terminal-style investigation interface.
-
-Documented commands include:
+TRACE includes a terminal-style investigation interface with documented commands including:
 
 ```text
 help
@@ -595,345 +536,140 @@ clear
 ai
 ```
 
-The CLI provides a rapid alternative to purely graphical investigation.
+# 19. Development and Build
 
-# 19. User Interface and UX
-
-## 19.1 Major Workspaces
-
-- Dashboard.
-- Case repository.
-- Entity explorer.
-- Evidence workspace.
-- Cross-case relationship views.
-- Interactive investigation graph.
-- Terminal-style workflow.
-- Responsive navigation.
-
-## 19.2 UX Principle
-
-The interface is designed around investigator context switching.
-
-A user should be able to move from:
-
-```text
-Relationship
-    -> Entity
-        -> Related Cases
-            -> Evidence
-                -> Verification
-```
-
-without losing the investigative trail.
-
-# 20. Development and Build Process
-
-## 20.1 Prerequisites
-
-- Node.js 18+
-- npm, pnpm or yarn
-- Git
-- Gemini API credentials when AI functionality is enabled
-
-## 20.2 Clone
+## Local Setup
 
 ```bash
 git clone https://github.com/voldey-04/Trace.git
 cd Trace
-```
-
-## 20.3 Install
-
-```bash
 npm install
-```
-
-## 20.4 Environment
-
-```bash
 cp .env.example .env
-```
-
-Configure required variables locally.
-
-Never commit secrets or API keys.
-
-## 20.5 Development
-
-```bash
 npm run dev
 ```
 
-The development command starts the TypeScript Express server and enables Vite middleware.
-
-## 20.6 Type Check
+## Type Check
 
 ```bash
 npm run lint
 ```
 
-The repository's lint script currently runs TypeScript with `--noEmit`.
-
-## 20.7 Production Build
+## Production Build
 
 ```bash
 npm run build
 npm start
 ```
 
-The build process runs the Vite frontend build and bundles `server.ts` with esbuild into `dist/server.cjs`.
+The build runs the Vite frontend build and bundles `server.ts` with esbuild into `dist/server.cjs`.
 
-# 21. Deployment
+# 20. Deployment
 
 The public demonstration is deployed at:
 
 https://trace-kappa-indol.vercel.app/
 
-This should be treated as a demonstration environment, not as a production law-enforcement evidence environment.
+This is a demonstration environment using synthetic investigation data.
 
-## 21.1 Deployment Checklist
+Production deployment would require persistent encrypted storage, identity/RBAC, durable audit logs, secure evidence storage, secrets management, centralized monitoring, backup/disaster recovery and formal retention policies.
 
-- Configure environment variables.
-- Keep API keys server-side.
-- Set `ALLOWED_ORIGINS`.
-- Configure `TRACE_API_KEY` when API authentication is required.
-- Confirm HTTPS.
-- Run a production build.
-- Validate `/api/health`.
-- Run functional smoke tests.
-- Confirm synthetic data is being used.
+# 21. Testing and Validation
 
-## 21.2 Production Architecture Required for Real Deployment
+TRACE uses multiple validation layers. Historical and current results are deliberately kept separate.
 
-A production implementation would require:
+## 21.1 Historical TestSprite Validation
 
-- Persistent encrypted database.
-- Secure object storage.
-- Identity and access management.
-- Role-based authorization.
-- Durable audit logging.
-- Centralized monitoring.
-- Secrets management.
-- Backup/disaster recovery.
-- Evidence retention/legal-hold policies.
-- Network segmentation.
-- Secure private infrastructure.
-
-# 22. Testing Strategy
-
-## 22.1 Test Layers
-
-| Layer | Purpose | Example Coverage |
-|---|---|---|
-| Unit/logic | Validate intelligence behavior | Normalization, matching, scoring, deduplication |
-| API validation | Validate backend contracts | IDs, enums, pagination, search, payloads |
-| Security | Probe attack classes | XSS, SQLi, traversal, command injection, prompt injection |
-| Functional UI | Validate workflows | Cases, entities, evidence, graph, navigation |
-| Integration | Validate service boundaries | Router, investigation service, AI gateway |
-| Regression | Prevent repeated bugs | Graph navigation, relationship lifecycle |
-| Deployment smoke | Validate public build | Startup, health, core workflows |
-
-## 22.2 Historical Functional Test
-
-An earlier external TestSprite run reported:
+The Aug 17, 2026 TestSprite run is preserved as historical frontend/user-workflow evidence.
 
 ```text
-46 total tests
+46 total
 45 passed
 1 failed
+0 skipped
+0 blocked
 97.8% pass rate
 ```
 
-The failure involved:
+The run covered Investigation Overview, Cases Repository, Intelligence Graph, Cross-Case Leads, Investigative CLI and Demo Investigation Flow.
+
+### Historical failure
+
+`Open a connected case from the graph`
+
+The affected path was Intelligence Graph → CASE-001 → Case detail. CASE-001 remained highlighted, but no detail panel/modal/navigation appeared.
+
+The TestSprite report proposed verifying graph node handlers, route/modal wiring and deployment of the detail component. The report itself did not verify the subsequent fix.
+
+See [`docs/reports/testsprite-historical-report.md`](reports/testsprite-historical-report.md).
+
+## 21.2 Current Automated Audit
+
+The supplied current audit reports:
 
 ```text
-Intelligence Graph -> CASE-001 case-detail navigation
-```
-
-Equivalent navigation from the Cases Repository worked.
-
-The graph/navigation issue was subsequently addressed, and later repository work explicitly improved graph navigation and UI state management.
-
-## 22.3 Current Security Validation
-
-The current project record reports:
-
-```text
-106 / 106 tests passing
+106 / 106 automated tests passing
 0 failures
+TypeScript linter: 0 errors
+Production build: successfully compiled
 ```
 
-This result represents an automated security/validation run.
+The current audit reports successful functional operation across dashboard, case management, evidence view, graph topology and inspection, link explainability/provenance, deterministic correlation and the investigative CLI.
 
-It should be described as validation of the tested attack classes and application behaviors, not proof that TRACE is immune to all future vulnerabilities.
+### Current API validation
 
-The current public repository does not expose a conventional test directory containing those 106 tests, so the result should be retained as an external validation report unless the test suite is later committed to the repository.
+The audit reports validated input boundaries across routes, standardized response envelopes, request tracing IDs and sanitized error handling.
 
-## 22.4 Security Test Matrix
+### Current security validation
 
-| Category | Expected Protection | Status |
-|---|---|---|
-| Cross-Site Scripting | Safe input/output handling | Validated |
-| SQL Injection | Reject injection-style inputs | Validated |
-| Path Traversal | Reject traversal patterns | Validated |
-| Command Injection | Prevent command execution paths | Validated |
-| Prompt Injection | Isolate untrusted evidence from trusted instructions | Validated |
-| Privilege Escalation | Enforce authorization server-side | Validated |
-| Data Exfiltration | Bound queries and pagination | Validated |
-| Payload Exhaustion | Enforce body-size limits | Validated |
-| Rate Abuse | Throttle repeated requests | Implemented/validated |
-| Malformed JSON | Safe 400 response | Implemented |
+The audit reports successful tested protection for XSS injection, SQL injection syntax, path traversal, command injection operators, prompt injection overrides and parameter privilege escalation attempts.
 
-## 22.5 Regression Philosophy
+### AI gateway validation
 
-Every significant bug should become one of:
+The audit reports exactly nine approved read-only tools, no shell/SQL/file/network access, clean negative results for non-existent identifiers, evidence-text isolation and active AI tool audit logging.
 
-1. A regression test.
-2. A deterministic validation rule.
-3. A documented acceptance check.
+## 21.3 Regression Strategy
 
-This is especially important for the graph and correlation engine because both contain stateful relationship lifecycles.
+Historical failures become high-priority regression candidates. The graph-to-case navigation test is therefore retained as a high-priority regression requirement alongside graph exploration, link inspection, repository-to-detail navigation and core cross-case lead review.
 
-# 23. Bug and Fix History
+The current cross-case matching hardening also creates regression requirements for deterministic repeated execution, deduplication and preservation of investigator dispositions.
 
-| Stage | Problem | Resolution |
-|---|---|---|
-| Early UI | Responsive navigation required improvement | Mobile navigation added |
-| Graph testing | CASE-001 navigation failure from graph | Graph navigation/UI state improved |
-| Evidence stage | Need stronger provenance | SHA-256 and custody-style records added |
-| Backend stage | Need server-side security boundary | Express API, validation, limits and auth added |
-| Correlation stage | Repeated matching could duplicate relationships | Deterministic/idempotent matching and disposition preservation |
+## 21.4 Testing Gaps
 
-# 24. Example Investigation
+The historical TestSprite evidence did not independently verify entity management/search, evidence and evidence-integrity workflows, timeline behavior, responsive device coverage, browser/device matrices or several navigation/error scenarios. The current audit should be interpreted according to its own documented scope.
 
-Consider two apparently unrelated cases.
+## 21.5 Machine-Readable Evidence
 
-### Case A
+See [`docs/reports/test-results.json`](reports/test-results.json) for the preserved summary of the historical TestSprite run and current aggregate audit evidence.
 
-```text
-Phone Number: +91 XXXXXXXX
-UPI ID: fraud@upi
-Domain: example-phishing.com
-```
+# 22. Current Audit Summary
 
-### Case B
+| Area | Result |
+|---|---|
+| Functional core workflows | Reported operational |
+| API validation | Validated |
+| Security attack classes | Validated for tested classes |
+| AI tool isolation | Validated |
+| Secrets/dependency audit | Validated |
+| TypeScript | 0 errors reported |
+| Production build | Successfully compiled |
+| Automated audit | 106/106 passed |
+| Historical TestSprite | 45/46 passed, 1 failed |
 
-```text
-Phone Number: +91 XXXXXXXX
-Bank Account: XXXX1234
-IP Address: 103.xxx.xxx.xxx
-```
+# 23. Limitations
 
-TRACE identifies the repeated phone number.
-
-The system can then surface:
-
-```text
-Shared Phone
-    |
-    +-- Case A
-    |    +-- UPI
-    |    +-- Domain
-    |
-    +-- Case B
-         +-- Bank Account
-         +-- IP Address
-```
-
-The output is an investigative lead.
-
-TRACE does not conclude that the cases belong to the same criminal network.
-
-The investigator verifies the underlying evidence and determines relevance.
-
-# 25. Human-in-the-Loop Model
-
-```text
-TRACE identifies relationship
-             |
-             v
-TRACE explains supporting indicators
-             |
-             v
-Investigator reviews
-             |
-             v
-Investigator verifies evidence
-             |
-             v
-Investigator decides relevance
-```
-
-This design keeps the final investigative judgment with the authorized human investigator.
-
-# 26. Data and Privacy Model
-
-The public demonstration uses synthetic investigation data.
-
-This is an intentional safety boundary.
-
-## Recommended Production Principles
-
-- Encrypt data in transit and at rest.
-- Apply least-privilege access.
-- Separate evidence content from application metadata.
-- Log access to sensitive evidence.
-- Retain immutable audit events.
-- Define retention and deletion rules.
-- Use secure secrets management.
-- Avoid placing sensitive evidence into AI prompts unless explicitly authorized and controlled.
-
-# 27. Demonstration Flow
-
-A strong TRACE demonstration should tell one coherent investigation story.
-
-1. Open the dashboard.
-2. Establish the investigation context.
-3. Open the case repository.
-4. Select a case.
-5. Inspect its entities and evidence.
-6. Identify an indicator repeated in another case.
-7. Open the cross-case relationship.
-8. Explain the deterministic score.
-9. Switch to the graph.
-10. Traverse the relationship.
-11. Inspect supporting evidence metadata and integrity information.
-12. Use the terminal interface.
-13. Use AI assistance for an explanation or summary.
-14. Emphasize the read-only AI boundary.
-15. Emphasize that the investigator remains the decision maker.
-
-# 28. Evaluation Criteria
-
-TRACE should be evaluated by asking:
-
-- Can it reveal a relationship that would otherwise require manual cross-case comparison?
-- Can the investigator understand why the relationship was surfaced?
-- Can the investigator navigate from relationship to case and evidence?
-- Is AI assistance separated from authoritative decision-making?
-- Does repeated correlation remain deterministic?
-- Do malicious or malformed inputs fail safely?
-- Are oversized requests rejected?
-- Are internal stack traces hidden from clients?
-- Can the complete workflow be demonstrated using synthetic data?
-
-# 29. Limitations
-
-- The prototype uses synthetic data.
-- It is not a production law-enforcement platform.
-- The current data layer is not an enterprise-grade persistent evidence repository.
+- TRACE uses synthetic data and is not a production law-enforcement platform.
+- The current storage architecture is not an enterprise evidence repository.
 - In-memory rate limiting is not sufficient for horizontally scaled production.
 - Audit/custody mechanisms need durable storage and formal policy controls.
 - AI output is probabilistic and must be verified against source evidence.
 - Deterministic scoring is explainable but is not statistical certainty.
-- The public demo should not receive real sensitive investigation data.
 - Production identity, authorization and organizational policy layers remain necessary.
 
-# 30. Future Roadmap
+# 24. Future Roadmap
 
 | Priority | Roadmap | Reason |
 |---|---|---|
-| P0 | Persistent secure data layer | Required for real multi-user investigations |
+| P0 | Persistent secure data layer | Real multi-user investigations |
 | P0 | Enterprise identity and RBAC | Controlled access |
 | P0 | Durable audit/event store | Long-term accountability |
 | P0 | Secure evidence object storage | Scalable evidence handling |
@@ -944,57 +680,14 @@ TRACE should be evaluated by asking:
 | P2 | Case collaboration workflows | Team investigations |
 | P2 | Production observability | Reliability and incident response |
 
-# 31. Project Outcome
+# 25. Project Outcome
 
 TRACE demonstrates a focused approach to cyber investigation assistance: turn distributed case evidence into a relationship layer that investigators can explore, verify and act upon.
 
-The strongest MVP characteristics are:
+The strongest MVP characteristics are cross-case correlation, deterministic relationship logic, evidence provenance, an interactive graph, a controlled AI gateway and deliberate security hardening.
 
-- Cross-case correlation.
-- Deterministic relationship logic.
-- Evidence provenance direction.
-- Interactive investigation graph.
-- Controlled AI gateway.
-- Deliberate security hardening.
-- Human-in-the-loop investigation workflow.
+The most important next step toward production is strengthening persistence, identity, authorization, audit durability, evidence storage, reproducible testing and operational security.
 
-The most important next step toward production is not simply adding more UI features. It is strengthening persistence, identity, authorization, audit durability, evidence storage, reproducible testing and operational security.
+# 26. Appendix — Repository Documentation Map
 
-# 32. Appendix A — Key Commands
-
-```bash
-npm install
-npm run dev
-npm run lint
-npm run build
-npm start
-```
-
-# 33. Appendix B — Environment Variables
-
-| Variable | Purpose | Handling |
-|---|---|---|
-| `TRACE_API_KEY` | Optional API authentication | Secret |
-| `ALLOWED_ORIGINS` | CORS allow-list | Deployment configuration |
-| `GEMINI_API_KEY` | AI provider credential when required | Secret |
-| `NODE_ENV` | Development/production behavior | Runtime configuration |
-
-# 34. Appendix C — Technical Evidence Behind This Documentation
-
-This documentation is grounded in:
-
-- The current public GitHub repository.
-- The project README.
-- `package.json`.
-- `server.ts`.
-- `src/server/apiRouter.ts`.
-- `src/server/security.ts`.
-- Repository commit history from project initialization through the latest cross-case matching hardening.
-- Previously recorded external functional testing.
-- Previously recorded external security validation.
-
-# 35. Appendix D — Documentation Status
-
-This document describes the TRACE implementation and development state as of 20 August 2026.
-
-Where a test result originates from an external validation run rather than a test suite visible in the repository, it is explicitly described as an external validation record. This distinction should be preserved in formal submissions so that the documentation does not overstate reproducibility.
+The repository's focused documentation is under `docs/`. Start with `docs/README.md` for the map and use the consolidated master document when a single end-to-end record is required.
