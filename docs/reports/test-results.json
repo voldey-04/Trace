@@ -1,0 +1,75 @@
+{
+  "test_run": {
+    "name": null,
+    "testsprite_run_id": "7409cdb6-22b4-48fb-8c7f-e95b6cc88829",
+    "started_at": "2026-08-17T09:17:18.248Z",
+    "completed_at": "2026-08-17T09:31:27.045Z",
+    "environment": "default",
+    "project_type": "FRONTEND",
+    "trigger": "Trace",
+    "strategy_hash": "ff67de3a-5386-4c9a-a8db-26408a822bdd",
+    "trace_version": null,
+    "commit": null,
+    "tested_url": null,
+    "browser": null,
+    "device": null
+  },
+  "summary": {
+    "total": 46,
+    "passed": 45,
+    "failed": 1,
+    "skipped": 0,
+    "blocked": 0,
+    "pass_rate": 97.8
+  },
+  "categories": {
+    "Investigation Overview": {"total": 14, "passed": 14, "failed": 0},
+    "Cases Repository": {"total": 6, "passed": 6, "failed": 0},
+    "Intelligence Graph": {"total": 6, "passed": 5, "failed": 1},
+    "Cross-Case Leads": {"total": 8, "passed": 8, "failed": 0},
+    "Investigative CLI": {"total": 6, "passed": 6, "failed": 0},
+    "Demo Investigation Flow": {"total": 6, "passed": 6, "failed": 0}
+  },
+  "failed_tests": [
+    {
+      "id": "47213b4f-1fc7-4229-9b7f-85dd5536064a",
+      "name": "Open a connected case from the graph",
+      "category": "Intelligence Graph",
+      "severity": "High",
+      "expected": "Selecting CASE-001 from the graph should navigate to the related case detail view",
+      "actual": "CASE-001 stayed highlighted on the graph; no case detail panel, modal, or navigation appeared",
+      "failure_message": "TEST FAILURE — Clicking the CASE-001 graph node did not navigate to a case detail view as expected.",
+      "root_cause_assessment": "The site appeared to update visual selection state without completing the detail transition; TestSprite suggested missing/broken/not-deployed transition or route/modal wiring.",
+      "evidence": "https://testsprite-videos.s3.us-east-1.amazonaws.com/20260817-092735-904e57a6.webm",
+      "fix_status": "Not verified by this historical report"
+    }
+  ],
+  "regression_candidates": [
+    {"name": "Open a connected case from the graph", "priority": "HIGH"},
+    {"name": "Explore the investigation graph", "priority": "HIGH"},
+    {"name": "Inspect a confirmed link in the graph", "priority": "HIGH"},
+    {"name": "Browse cases and open a case detail", "priority": "HIGH"},
+    {"name": "Review and verify a suggested cross-case lead", "priority": "HIGH"},
+    {"name": "Open a specific case from the Investigative CLI", "priority": "MEDIUM"},
+    {"name": "Search for an indicator in the graph", "priority": "MEDIUM"},
+    {"name": "Filter the graph by indicator and type", "priority": "MEDIUM"}
+  ],
+  "testing_gaps": [
+    "Entity Management",
+    "Entity Search",
+    "Evidence / Evidence Inspection / Evidence Integrity",
+    "Timeline",
+    "Responsive UI across desktop/tablet/mobile",
+    "Header/sidebar/back navigation as standalone coverage",
+    "Browser/device matrix",
+    "TRACE version / commit / deployment hash",
+    "Tested URL"
+  ],
+  "current_audit": {
+    "automated_tests": 106,
+    "passed": 106,
+    "failed": 0,
+    "typescript_linter_errors": 0,
+    "production_build": "Successfully compiled"
+  }
+}
